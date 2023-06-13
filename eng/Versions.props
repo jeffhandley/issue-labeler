@@ -18,9 +18,9 @@
 
     <!-- ML.NET Packages -->
     <!-- Microsoft.ML 2.0.0+ has a blocking known issue: https://github.com/dotnet/machinelearning/issues/6565 -->
-    <MicrosoftDataAnalysisVersion>0.19.1</MicrosoftDataAnalysisVersion>
-    <MicrosoftMLVersion>1.7.1</MicrosoftMLVersion>
-    <MicrosoftMLAutoMLVersion>0.19.1</MicrosoftMLAutoMLVersion>
+    <MicrosoftDataAnalysisVersion>0.21.0-preview.23266.6</MicrosoftDataAnalysisVersion>
+    <MicrosoftMLVersion>3.0.0-preview.23266.6</MicrosoftMLVersion>
+    <MicrosoftMLAutoMLVersion>0.21.0-preview.23266.6</MicrosoftMLAutoMLVersion>
 
     <!-- Microsoft Extensions Packages -->
     <MicrosoftExtensionsAzureVersion>1.6.3</MicrosoftExtensionsAzureVersion>
