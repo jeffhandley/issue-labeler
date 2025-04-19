@@ -67,7 +67,7 @@ public class ArgUtilsTests
         Assert.IsFalse(result);
         Assert.IsNull(org);
         Assert.IsNull(repo);
-        showUsage.Received(1).Invoke("Input 'test-arg-name' has an empty value or is not in the format of '{org}/{repo}'.");
+        showUsage.Received(1).Invoke("Input 'test-arg-name' has an empty value or is not in the format of '{org}/{repo}'. Value defaults to GITHUB_REPOSITORY environment variable if not specified.");
     }
 
     [TestMethod]
