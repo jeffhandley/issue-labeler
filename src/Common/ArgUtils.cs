@@ -47,9 +47,14 @@ public static class ArgUtils
     {
         string? orgRepo = GetString(inputName, getInput);
 
+        if (orgRepo is null)
+        {
+            orgRepo = GetString("GITHUB_REPOSITORY", Environment.GetEnvironmentVariable);
+        }
+
         if (orgRepo is null || !orgRepo.Contains('/'))
         {
-            showUsage($$"""Input '{{inputName}}' has an empty value or is not in the format of '{org}/{repo}'.""");
+            showUsage($$"""Input '{{inputName}}' has an empty value or is not in the format of '{org}/{repo}'. Value defaults to GITHUB_REPOSITORY environment variable if not specified.""");
             org = null;
             repo = null;
             return false;

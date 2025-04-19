@@ -35,25 +35,39 @@ public struct Args
               GITHUB_TOKEN      GitHub token to be used for API calls.
 
             Required inputs:
-              repo              GitHub repository in the format {org}/{repo}.
-              label_prefix      Prefix for label predictions. Must end with a non-alphanumeric character.
+              label_prefix      Prefix for label predictions.
+                                Must end with a non-alphanumeric character.
 
             Required for predicting issue labels:
               issue_model       Path to existing issue prediction model file (ZIP file).
-              issue_numbers     Comma-separated list of issue number ranges. Example: 1-3,7,5-9.
+
+              issue_numbers     Comma-separated list of issue number ranges.
+                                Example: 1-3,7,5-9.
 
             Required for predicting pull request labels:
               pull_model        Path to existing pull request prediction model file (ZIP file).
-              pull_numbers      Comma-separated list of pull request number ranges. Example: 1-3,7,5-9.
+              pull_numbers      Comma-separated list of pull request number ranges.
+                                Example: 1-3,7,5-9.
 
             Optional inputs:
-              default_label     Default label to use if no label is predicted.
-              threshold         Minimum prediction confidence threshold. Range (0,1]. Default 0.4.
-              retries           Comma-separated retry delays in seconds. Default: 30,30,300,300,3000,3000.
+              repo              GitHub repository in the format {org}/{repo}.
+                                Defaults to: GITHUB_REPOSITORY environment variable.
+
+              default_label     Label to apply if no label is predicted.
+
+              threshold         Minimum prediction confidence threshold. Range (0,1].
+                                Defaults to: 0.4.
+
+              retries           Comma-separated retry delays in seconds.
+                                Defaults to: 30,30,300,300,3000,3000.
+
               excluded_authors  Comma-separated list of authors to exclude.
-              token             GitHub token. Default: read from GITHUB_TOKEN env var.
+
               test              Run in test mode, outputting predictions without applying labels.
+                                Must be one of: true, false, TRUE, FALSE
+
               verbose           Enable verbose output.
+                                Must be one of: true, false, TRUE, FALSE
             """);
 
         Environment.Exit(1);
