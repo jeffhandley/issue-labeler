@@ -1,0 +1,95 @@
+name: "Labeler: Predict Labels"
+
+on:
+  # Only automatically predict area labels when issues are originally opened
+  issues:
+    types: opened
+
+  # Per to the following documentation:
+  # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#pull_request_target
+  #
+  # The `pull_request_target` event runs in the context of the base of the pull request, rather
+  # than in the context of the merge commit, as the `pull_request` event does. This prevents
+  # execution of unsafe code from the head of the pull request that could alter the repository
+  # or steal any secrets you use in your workflow. This event allows your workflow to do things
+  # like label or comment on pull requests from forks.
+  #
+  # Only automatically predict area labels when pull requests are first opened
+  pull_request_target:
+    types: opened
+
+  # Allow dispatching the workflow via the Actions UI, specifying ranges of numbers
+  workflow_dispatch:
+    inputs:
+      issue_numbers:
+        description: "Issue Numbers (comma-separated list of ranges)"
+        type: string
+
+      pull_numbers:
+        description: "Pull Numbers (comma-separated list of ranges)"
+        type: string
+
+      model_cache_key:
+        description: "The cache key suffix to use for loading the model"
+        type: string
+        required: true
+        default: "LIVE"
+
+env:
+  ISSUE_MODEL_PATH: labeler-cache/issue-model.zip
+  ISSUE_MODEL_CACHE_KEY: issue-labeler/issues/model/${{ inputs.model_cache_key }}
+  PULL_MODEL_PATH: labeler-cache/pull-model.zip
+  PULL_MODEL_CACHE_KEY: issue-labeler/pulls/model/${{ inputs.model_cache_key }}
+  THRESHOLD: 0.40
+  LABEL_PREFIX: "area-"
+  DEFAULT_LABEL: "needs-area-label"
+
+jobs:
+  predict:
+    # Do not run the workflow on forks outside the 'jeffhandley' org
+    if: ${{ github.repository_owner == 'jeffhandley' && (inputs.issue_numbers || github.event.issue.number) }}
+    permissions:
+      issues: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Restore issue model from cache"
+        if: ${{ inputs.issue_numbers || github.event == 'issues' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.ISSUE_MODEL_PATH }}
+          key:  ${{ env.ISSUE_MODEL_CACHE_KEY }}
+          fail-on-cache-miss: true
+
+      - name: "Predict issue labels"
+        if: ${{ inputs.issue_numbers || github.event == 'issues' }}
+        uses: jeffhandley/issue-labeler/predict@main
+        with:
+          issue_model:   ${{ env.ISSUE_MODEL_PATH }}
+          issue_numbers: ${{ inputs.issue_numbers || github.event.issue.number }}
+          label_prefix:  ${{ env.LABEL_PREFIX }}
+          threshold:     ${{ env.THRESHOLD }}
+          default_label: ${{ env.DEFAULT_LABEL }}
+        env:
+          GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Restore pull model from cache"
+        if: ${{ inputs.pull_numbers || github.event == 'pull_request_target' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.PULL_MODEL_PATH }}
+          key:  ${{ env.PULL_MODEL_CACHE_KEY }}
+          fail-on-cache-miss: true
+
+      - name: "Predict pull labels"
+        if: ${{ inputs.pull_numbers || github.event == 'pull_request_target' }}
+        uses: jeffhandley/issue-labeler/predict@main
+        with:
+          pull_model:    ${{ env.PULL_MODEL_PATH }}
+          pull_numbers:  ${{ inputs.pull_numbers || github.event.number }}
+          label_prefix:  ${{ env.LABEL_PREFIX }}
+          threshold:     ${{ env.THRESHOLD }}
+          default_label: ${{ env.DEFAULT_LABEL }}
+        env:
+          GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}

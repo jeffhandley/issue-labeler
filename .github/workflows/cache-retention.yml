@@ -11,16 +11,6 @@ on:
         type: boolean
 
 jobs:
-  restore-predictor:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: "Check the cache for an existing build of the Predictor"
-        uses: actions/cache/restore@v4
-        with:
-          path: labeler-build/Predictor
-          key: issue-labeler/predictor-app
-          fail-on-cache-miss: true
-
   restore-issue-model:
     if: ${{ !inputs.skip_issue_model }}
     runs-on: ubuntu-24.04
