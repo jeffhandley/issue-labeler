@@ -1,13 +1,49 @@
 name: "Labeler: Cache Retention"
+description: "Regularly restore the issue-labeler cache entries to prevent cache eviction."
+
+# For more information about GitHub's action cache limits and eviction policy, see:
+# https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows#usage-limits-and-eviction-policy
 
 on:
   schedule:
     - cron: "36 4 * * *" # 4:36 every day (arbitrary time daily)
 
   workflow_dispatch:
+    inputs:
+      skip_issue_model:
+        description: "Skip cache retention of the issue model"
+        type: boolean
+      skip_pull_model:
+        description: "Skip cache retention of the pull model"
+        type: boolean
+
+env:
+  ISSUE_MODEL_PATH: labeler-cache/issue-model.zip
+  PULL_MODEL_PATH:  labeler-cache/pull-model.zip
+  ISSUE_MODEL_CACHE_KEY: issue-labeler/issues/model/${{ inputs.model_cache_key }}
+  PULL_MODEL_CACHE_KEY:  issue-labeler/pulls/model/${{ inputs.model_cache_key }}
 
 jobs:
-  cache-retention:
-    # Do not run the workflow on forks outside the 'dotnet' org
-    if: ${{ github.repository_owner == 'dotnet' }}
-    uses: dotnet/issue-labeler/.github/workflows/cache-retention.yml@f0c098669828a134c0313adf3f58c1909e555d86 # v1.0.1
+  issue-model:
+    # Do not run the job on forks outside the 'jeffhandley' org
+    if: ${{ github.repository_owner == 'jeffhandley' && !inputs.skip_issue_model }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Restore issue model from cache"
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.ISSUE_MODEL_PATH }}
+          key:  ${{ env.ISSUE_MODEL_CACHE_KEY }}
+          fail-on-cache-miss: true
+
+  pull-model:
+    # Do not run the job on forks outside the 'jeffhandley' org
+    if: ${{ github.repository_owner == 'jeffhandley' && !inputs.skip_pull_model }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Restore pull model from cache"
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.PULL_MODEL_PATH }}
+          key:  ${{ env.PULL_MODEL_CACHE_KEY }}
+          fail-on-cache-miss: true
