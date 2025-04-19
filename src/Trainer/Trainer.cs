@@ -24,6 +24,16 @@ if (argsData.PullDataPath is not null && argsData.PullModelPath is not null)
 
 static void CreateModel(string dataPath, string modelPath, ModelType type)
 {
+    if (!File.Exists(dataPath))
+    {
+        throw new InvalidOperationException($"The data file '{dataPath}' does not exist.");
+    }
+
+    if (File.ReadLines(dataPath).Take(10).Count() < 10)
+    {
+        throw new InvalidOperationException($"The data file '{dataPath}' does not contain enough data for training. A minimum of 10 records is required.");
+    }
+
     Console.WriteLine("Loading data into train/test sets...");
     MLContext mlContext = new();
 
