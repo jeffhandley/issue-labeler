@@ -93,11 +93,11 @@ jobs:
 
             rm ${{ env.DATA_PATH }}
 
-      - name: "Check out the 'dotnet/issue-labeler' repo"
+      - name: "Check out the 'jeffhandley/issue-labeler' repo"
         uses: actions/checkout@v4
         with:
-          repository: dotnet/issue-labeler
-          ref: d74b8e18f41673790be3d0ca87296a49e81ac19a # Staging v1.0.1
+          repository: jeffhandley/issue-labeler
+          ref: main
 
       - uses: actions/setup-dotnet@v4
         with:
