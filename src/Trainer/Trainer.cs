@@ -26,11 +26,13 @@ static void CreateModel(string dataPath, string modelPath, ModelType type)
 {
     if (!File.Exists(dataPath))
     {
+        Console.WriteLine($"The data file '{dataPath}' does not exist.");
         throw new InvalidOperationException($"The data file '{dataPath}' does not exist.");
     }
 
     if (File.ReadLines(dataPath).Take(10).Count() < 10)
     {
+        Console.WriteLine($"The data file '{dataPath}' does not contain enough data for training. A minimum of 10 records is required.");
         throw new InvalidOperationException($"The data file '{dataPath}' does not contain enough data for training. A minimum of 10 records is required.");
     }
 
