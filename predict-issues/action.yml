@@ -1,0 +1,31 @@
+name: 'Predict Issue Labels'
+description: 'Predicts issue labels using a machine learning model trained against existing issues.'
+
+branding:
+  icon: tag
+  color: purple
+
+inputs:
+  model_path:
+    description: "The path to the prediction model file."
+    type: string
+    required: true
+  issue_numbers:
+    description: 'The issue numbers to predict labels for, specified as a comma-separated list of numbers or number ranges.'
+    type: string
+    required: true
+  label_prefix:
+    description: "The label prefix used for prediction. Must end with a non-alphanumeric character."
+    type: string
+    required: true
+  threshold:
+    description: "The minimum confidence score for a label prediction, as a decimal between 0.00 and 1.00. The recommended threshold is 0.40."
+    type: number
+    required: true
+  default_label:
+    description: "The default label to apply if no prediction meets the threshold. Leave blank for no default label."
+    type: string
+
+runs:
+  using: docker
+  image: docker://ghcr.io/jeffhandley/issue-labeler/predictor:main
