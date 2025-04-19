@@ -47,3 +47,5 @@ jobs:
           label_prefix: "area-"
           threshold: 0.40
           default_label: "needs-area-label"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
