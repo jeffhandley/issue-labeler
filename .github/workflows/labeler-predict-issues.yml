@@ -19,6 +19,7 @@ on:
 
 env:
   MODEL_PATH: labeler-cache/issue-model.zip
+  MODEL_CACHE_KEY: issue-labeler/issues/model/${{ inputs.model_cache_key }}
 
 jobs:
   predict-issues:
