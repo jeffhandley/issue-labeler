@@ -17,16 +17,30 @@ on:
         required: true
         default: "LIVE"
 
+env:
+  MODEL_PATH: labeler-cache/issue-model.zip
+
 jobs:
   predict-issues:
-    # Do not run the workflow on forks outside the 'dotnet' org
-    if: ${{ github.repository_owner == 'dotnet' && (inputs.issue_numbers || github.event.issue.number) }}
+    # Do not run the workflow on forks outside the 'jeffhandley' org
+    if: ${{ github.repository_owner == 'jeffhandley' && (inputs.issue_numbers || github.event.issue.number) }}
     permissions:
       issues: write
-    uses: dotnet/issue-labeler/.github/workflows/predict-issues.yml@f0c098669828a134c0313adf3f58c1909e555d86 # v1.0.1
-    with:
-      model_cache_key: ${{ inputs.model_cache_key }}
-      issue_numbers: ${{ inputs.issue_numbers || github.event.issue.number }}
-      label_prefix: "area-"
-      threshold: 0.40
-      default_label: "needs-area-label"
+
+    steps:
+      - name: "Restore model from cache"
+        id: restore-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.MODEL_PATH }}
+          key: ${{ env.MODEL_CACHE_KEY }}
+          fail-on-cache-miss: true
+
+      - name: "Run Predictor"
+        uses: jeffhandley/issue-labeler/predict-issues@main
+        with:
+          issue_model: ${{ env.MODEL_PATH }}
+          issue_numbers: ${{ inputs.issue_numbers || github.event.issue.number }}
+          label_prefix: "area-"
+          threshold: 0.40
+          default_label: "needs-area-label"
