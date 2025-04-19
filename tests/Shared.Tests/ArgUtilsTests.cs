@@ -35,7 +35,7 @@ public class ArgUtilsTests
 
         Assert.IsFalse(result);
         Assert.IsNull(argValue);
-        showUsage.Received(1).Invoke("Argument 'test-arg-name' has an empty value.");
+        showUsage.Received(1).Invoke("Input 'test-arg-name' has an empty value.");
     }
 
     [TestMethod]
@@ -67,7 +67,7 @@ public class ArgUtilsTests
         Assert.IsFalse(result);
         Assert.IsNull(org);
         Assert.IsNull(repo);
-        showUsage.Received(1).Invoke("Argument 'test-arg-name' has an empty value or is not in the format of '{org}/{repo}'.");
+        showUsage.Received(1).Invoke("Input 'test-arg-name' has an empty value or is not in the format of '{org}/{repo}'.");
     }
 
     [TestMethod]
@@ -99,7 +99,7 @@ public class ArgUtilsTests
         Assert.IsFalse(result);
         Assert.IsNull(org);
         Assert.IsNull(repos);
-        showUsage.Received(1).Invoke("Argument '--repo' is not in the format of '{org}/{repo}': invalid");
+        showUsage.Received(1).Invoke("Input 'test-arg-name' contains a value that is not in the format of '{org}/{repo}': invalid");
     }
 
     [TestMethod]
@@ -128,43 +128,38 @@ public class ArgUtilsTests
 
         Assert.IsFalse(result);
         Assert.IsNull(labelPredicate);
-        showUsage.Received(1).Invoke(Arg.Is<string>(s => s.Contains("Argument 'test-arg-name' must end in something other than a letter or number.")));
+        showUsage.Received(1).Invoke(Arg.Is<string>(s => s.Contains("Input 'test-arg-name' must end in a non-alphanumeric character.")));
     }
 
     [TestMethod]
     public void TryDequeuePath_ShouldReturnTrue_WhenValueIsValid()
     {
         var args = new Queue<string>(new[] { "/mnt/c/path/to/file" });
-        var showUsage = Substitute.For<Action<string>>();
         string? path;
 
-        var result = ArgUtils.TryDequeuePath(args, showUsage, "test-arg-name", out path);
+        var result = ArgUtils.TryDequeuePath(args, "test-arg-name", out path);
 
         Assert.IsTrue(result);
         Assert.AreEqual("/mnt/c/path/to/file", path);
-        showUsage.DidNotReceive().Invoke(Arg.Any<string>());
     }
 
     [TestMethod]
     public void TryDequeuePath_ShouldReturnFalse_WhenValueIsInvalid()
     {
         var args = new Queue<string>([""]);
-        var showUsage = Substitute.For<Action<string>>();
         string? path;
 
-        var result = ArgUtils.TryDequeuePath(args, showUsage, "test-arg-name", out path);
+        var result = ArgUtils.TryDequeuePath(args, "test-arg-name", out path);
 
         Assert.IsFalse(result);
         Assert.IsNull(path);
-        showUsage.Received(1).Invoke("Argument 'test-arg-name' has an empty value.");
     }
 
     [TestMethod]
     public void TryDequeueStringArray_ValidInput_ReturnsTrue()
     {
         var args = new Queue<string>(["value1,value2,value3"]);
-        var showUsage = Substitute.For<Action<string>>();
-        bool result = ArgUtils.TryDequeueStringArray(args, showUsage, "test-arg-name", out string[]? argValues);
+        bool result = ArgUtils.TryDequeueStringArray(args, "test-arg-name", out string[]? argValues);
 
         Assert.IsTrue(result);
         Assert.IsNotNull(argValues);
@@ -172,7 +167,6 @@ public class ArgUtilsTests
         CollectionAssert.Contains(argValues, "value1");
         CollectionAssert.Contains(argValues, "value2");
         CollectionAssert.Contains(argValues, "value3");
-        showUsage.DidNotReceive().Invoke(Arg.Any<string>());
     }
 
     [TestMethod]

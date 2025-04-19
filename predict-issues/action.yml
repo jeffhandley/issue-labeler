@@ -6,7 +6,7 @@ branding:
   color: purple
 
 inputs:
-  model_path:
+  issue_model:
     description: "The path to the prediction model file."
     type: string
     required: true

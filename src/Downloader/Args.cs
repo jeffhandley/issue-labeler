@@ -85,7 +85,7 @@ public struct Args
                     break;
 
                 case "--issue-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, ShowUsage, "--issue-data", out string? issueDataPath))
+                    if (!ArgUtils.TryDequeuePath(arguments, "--issue-data", out string? issueDataPath))
                     {
                         return null;
                     }
@@ -101,7 +101,7 @@ public struct Args
                     break;
 
                 case "--pull-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, ShowUsage, "--pull-data", out string? pullDataPath))
+                    if (!ArgUtils.TryDequeuePath(arguments, "--pull-data", out string? pullDataPath))
                     {
                         return null;
                     }
@@ -133,7 +133,7 @@ public struct Args
                     break;
 
                 case "--excluded-authors":
-                    if (!ArgUtils.TryDequeueStringArray(arguments, ShowUsage, "--excluded-authors", out string[]? excludedAuthors))
+                    if (!ArgUtils.TryDequeueStringArray(arguments, "--excluded-authors", out string[]? excludedAuthors))
                     {
                         return null;
                     }
