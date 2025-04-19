@@ -16,6 +16,12 @@ public static class ArgUtils
     {
         string? input = GetString(inputName, getInput);
 
+        if (input is null)
+        {
+            value = false;
+            return true;
+        }
+
         if (!bool.TryParse(input, out bool parsedValue))
         {
             showUsage($"Input '{inputName}' must be 'true', 'false', 'TRUE', or 'FALSE'.");
