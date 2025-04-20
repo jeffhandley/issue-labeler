@@ -52,11 +52,11 @@ jobs:
     permissions:
       issues: read
       actions: write
-    uses: jeffhandley/issue-labeler/.github/workflows/download-issues.yml@main
+    uses: jeffhandley/issue-labeler/download@main
     with:
       github_token: ${{ inputs.github_token || github.token }}
       repository: ${{ inputs.repository || github.repository }}
-      data_cache_key: ${{ inputs.cache_key_suffix }}
+      issue_cache_key: ${{ inputs.cache_key_suffix }}
       issue_limit: ${{ inputs.data_limit && fromJSON(inputs.data_limit) || 0 }}
       label_prefix: ${{ inputs.label_prefix }}
 
@@ -86,11 +86,11 @@ jobs:
     permissions:
       pull-requests: read
       actions: write
-    uses: jeffhandley/issue-labeler/.github/workflows/download-pulls.yml@main
+    uses: jeffhandley/issue-labeler/download@main
     with:
       github_token: ${{ inputs.github_token || github.token }}
       repository: ${{ inputs.repository || github.repository }}
-      data_cache_key: ${{ inputs.cache_key_suffix }}
+      pull_cache_key: ${{ inputs.cache_key_suffix }}
       pull_limit: ${{ inputs.data_limit && fromJSON(inputs.data_limit) || 0 }}
       label_prefix: ${{ inputs.label_prefix }}
 
