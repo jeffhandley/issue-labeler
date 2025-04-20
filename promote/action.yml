@@ -8,7 +8,7 @@ inputs:
   pulls:
     description: "Promote the pull model"
     required: true
-  promoted_cache_key:
+  cache_key:
     description: "The cache key suffix to promote to LIVE"
     required: true
   backup_cache_key:
@@ -24,25 +24,25 @@ runs:
   using: "composite"
   steps:
     - name: "Set environment variables for issue promotion"
-      if: ${{ inputs.issues == "true" }}
+      if: ${{ inputs.issues }}
       shell: bash
       run: |
         echo "ISSUE_MODEL_PATH=labeler-cache/issue-model.zip" >> $GITHUB_ENV
-        echo "ISSUE_PROMOTED_CACHE_KEY=issue-labeler/issues/model/${{ inputs.promoted_cache_key }}" >> $GITHUB_ENV
+        echo "ISSUE_PROMOTED_CACHE_KEY=issue-labeler/issues/model/${{ inputs.cache_key }}" >> $GITHUB_ENV
         echo "ISSUE_LIVE_CACHE_KEY=issue-labeler/issues/model/LIVE" >> $GITHUB_ENV
         echo "ISSUE_BACKUP_CACHE_KEY=issue-labeler/issues/model/${{ inputs.backup_cache_key }}" >> $GITHUB_ENV
 
     - name: "Set environment variables for pull promotion"
-      if: ${{ inputs.pulls == "true" }}
+      if: ${{ inputs.pulls }}
       shell: bash
       run: |
         echo "PULL_MODEL_PATH=labeler-cache/pull-model.zip" >> $GITHUB_ENV
-        echo "PULL_PROMOTED_CACHE_KEY=issue-labeler/pulls/model/${{ inputs.promoted_cache_key }}" >> $GITHUB_ENV
+        echo "PULL_PROMOTED_CACHE_KEY=issue-labeler/pulls/model/${{ inputs.cache_key }}" >> $GITHUB_ENV
         echo "PULL_LIVE_CACHE_KEY=issue-labeler/pulls/model/LIVE" >> $GITHUB_ENV
         echo "PULL_BACKUP_CACHE_KEY=issue-labeler/pulls/model/${{ inputs.backup_cache_key }}" >> $GITHUB_ENV
 
     - name: "Check for existing backup cache entry (Issues)"
-      if: ${{ inputs.issues == "true" }}
+      if: ${{ inputs.issues }}
       id: issue-check-backup
       uses: actions/cache/restore@v4
       with:
@@ -52,7 +52,7 @@ runs:
         fail-on-cache-miss: false
 
     - name: "Check for existing backup cache entry (Pulls)"
-      if: ${{ inputs.pulls == "true" }}
+      if: ${{ inputs.pulls }}
       id: pull-check-backup
       uses: actions/cache/restore@v4
       with:
@@ -62,7 +62,7 @@ runs:
         fail-on-cache-miss: false
 
     - name: "Abort if backup cache entry already exists"
-      if: ${{ inputs.issues == "true" || inputs.pulls == "true" }}
+      if: ${{ inputs.issues || inputs.pulls }}
       shell: bash
       run: |
         ISSUE_ABORT_MESSAGE=""
@@ -108,7 +108,7 @@ runs:
         fail-on-cache-miss: false
 
     - name: "Cache backup of current LIVE issue model(s)"
-      if: ${{ inputs.issues && steps.issue-check-live.outputs.cache-hit == "true" }}
+      if: ${{ inputs.issues && steps.issue-check-live.outputs.cache-hit == 'true' }}
       id: issue-backup-model
       uses: actions/cache/save@v4
       with:
@@ -116,7 +116,7 @@ runs:
         key: ${{ env.ISSUE_BACKUP_CACHE_KEY }}
 
     - name: "Cache backup of current LIVE pull model(s)"
-      if: ${{ inputs.pulls && steps.pull-check-live.outputs.cache-hit == "true" }}
+      if: ${{ inputs.pulls && steps.pull-check-live.outputs.cache-hit == 'true' }}
       id: pull-backup-model
       uses: actions/cache/save@v4
       with:
@@ -124,13 +124,13 @@ runs:
         key: ${{ env.PULL_BACKUP_CACHE_KEY }}
 
     - name: "Remove local copy of current LIVE issue model(s)"
-      if: ${{ inputs.issues && steps.issue-check-live.outputs.cache-hit == "true" }}
+      if: ${{ inputs.issues && steps.issue-check-live.outputs.cache-hit == 'true' }}
       shell: bash
       run: |
         rm ${{ env.ISSUE_MODEL_PATH }}
 
     - name: "Remove local copy of current LIVE pull model(s)"
-      if: ${{ inputs.pulls && steps.pull-check-live.outputs.cache-hit == "true" }}
+      if: ${{ inputs.pulls && steps.pull-check-live.outputs.cache-hit == 'true' }}
       shell: bash
       run: |
         rm ${{ env.PULL_MODEL_PATH }}
@@ -154,7 +154,7 @@ runs:
         fail-on-cache-miss: true
 
     - name: "Delete existing live cache entry (Issues)"
-      if: ${{ inputs.issues && steps.issue-check-live.outputs.cache-hit == "true" }}
+      if: ${{ inputs.issues && steps.issue-check-live.outputs.cache-hit == 'true' }}
       shell: bash
       run: |
         gh api --method DELETE \
@@ -163,7 +163,7 @@ runs:
           /repos/${{ github.repository }}/actions/caches?key=${{ env.ISSUE_LIVE_CACHE_KEY }}
 
     - name: "Delete existing live cache entry (Pulls)"
-      if: ${{ inputs.pulls && steps.pull-check-live.outputs.cache-hit == "true" }}
+      if: ${{ inputs.pulls && steps.pull-check-live.outputs.cache-hit == 'true' }}
       shell: bash
       run: |
         gh api --method DELETE \
