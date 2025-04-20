@@ -29,14 +29,14 @@ permissions:
 jobs:
   labeler-promote-issues:
     if: ${{ inputs.promote_issues }}
-    uses: jeffhandley/issue-labeler/.github/workflows/promote-issues.yml@main
+    uses: jeffhandley/issue-labeler/promote@main
     with:
       model_cache_key: ${{ inputs.model_cache_key }}
       backup_cache_key: ${{ inputs.backup_cache_key }}
 
   labeler-promote-pulls:
     if: ${{ inputs.promote_pulls }}
-    uses: jeffhandley/issue-labeler/.github/workflows/promote-pulls.yml@main
+    uses: jeffhandley/issue-labeler/promote@main
     with:
       model_cache_key: ${{ inputs.model_cache_key }}
       backup_cache_key: ${{ inputs.backup_cache_key }}

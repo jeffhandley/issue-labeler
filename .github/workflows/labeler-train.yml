@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Issues: Download Data"
-        uses: jeffhandley/issue-labeler/download-data@main
+        uses: jeffhandley/issue-labeler/download@main
         with:
           issues: true
           cache_key: ${{ inputs.cache_key_suffix }}
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Issues: Train Model"
-        uses: jeffhandley/issue-labeler/train-model@main
+        uses: jeffhandley/issue-labeler/train@main
         with:
           issues: true
           data_cache_key: ${{ inputs.cache_key_suffix }}
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Issues: Test Model"
-        uses: jeffhandley/issue-labeler/test-model@main
+        uses: jeffhandley/issue-labeler/test@main
         with:
           issues: true
           cache_key: ${{ inputs.cache_key_suffix }}
@@ -100,7 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Issues: Download Data"
-        uses: jeffhandley/issue-labeler/download-data@main
+        uses: jeffhandley/issue-labeler/download@main
         with:
           pulls: true
           cache_key: ${{ inputs.cache_key_suffix }}
@@ -117,7 +117,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Issues: Train Model"
-        uses: jeffhandley/issue-labeler/train-model@main
+        uses: jeffhandley/issue-labeler/train@main
         with:
           pulls: true
           data_cache_key: ${{ inputs.cache_key_suffix }}
@@ -129,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Issues: Test Model"
-        uses: jeffhandley/issue-labeler/test-model@main
+        uses: jeffhandley/issue-labeler/test@main
         with:
           pulls: true
           cache_key: ${{ inputs.cache_key_suffix }}
