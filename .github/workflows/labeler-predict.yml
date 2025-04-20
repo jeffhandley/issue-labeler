@@ -1,4 +1,4 @@
-name: "Labeler: Predict Labels"
+name: "Labeler: Prediction"
 
 on:
   # Only automatically predict area labels when issues are originally opened

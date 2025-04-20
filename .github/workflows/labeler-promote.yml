@@ -1,4 +1,4 @@
-name: "Labeler: Promote Models"
+name: "Labeler: Promotion"
 
 on:
   # Dispatched via the Actions UI, promotes the staged models from
