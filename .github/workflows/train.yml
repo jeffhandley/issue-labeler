@@ -1,7 +1,7 @@
 name: "Train Models"
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       download_issues:
         description: "Issues: Download Data"
@@ -12,15 +12,15 @@ on:
       test_issues:
         description: "Issues: Test Model"
         type: boolean
-      download_pulls:
-        description: "Pulls: Download Data"
-        type: boolean
-      train_pulls:
-        description: "Pulls: Train Model"
-        type: boolean
-      test_pulls:
-        description: "Pulls: Test Model"
-        type: boolean
+      # download_pulls:
+      #   description: "Pulls: Download Data"
+      #   type: boolean
+      # train_pulls:
+      #   description: "Pulls: Train Model"
+      #   type: boolean
+      # test_pulls:
+      #   description: "Pulls: Test Model"
+      #   type: boolean
 
       label_prefix:
         description: "Label Prefix"
@@ -48,75 +48,78 @@ on:
 
 jobs:
   download-issues:
-    if: ${{ inputs.download_issues == "true" }}
-    # permissions:
-    #   issues: read
-    #   actions: write
-    uses: jeffhandley/issue-labeler/download-data@main
-    with:
-      issues: true
-      issue_limit: ${{ inputs.data_limit && fromJSON(inputs.data_limit) || 0 }}
-      label_prefix: ${{ inputs.label_prefix }}
-      cache_key: ${{ inputs.cache_key_suffix }}
-      repository: ${{ inputs.repository || github.repository }}
-      github_token: ${{ inputs.github_token || github.token }}
+    if: ${{ inputs.download_issues }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      actions: write
+    steps:
+      - name: "Download Issues"
+        uses: jeffhandley/issue-labeler/download-data@main
+        with:
+          issues: true
+          issue_limit: ${{ inputs.data_limit && fromJSON(inputs.data_limit) || 0 }}
+          label_prefix: ${{ inputs.label_prefix }}
+          cache_key: ${{ inputs.cache_key_suffix }}
+          repository: ${{ inputs.repository || github.repository }}
+          github_token: ${{ inputs.github_token || github.token }}
 
-  train-issues:
-    needs: download-issues
-    if: ${{ inputs.train_issues == "true" && always() && (needs.download-issues.result == "success" || needs.download-issues.result == "skipped") }}
-    # permissions:
-    #   actions: write
-    uses: jeffhandley/issue-labeler/train-model@main
-    with:
-      issues: true
-      data_cache_key: ${{ inputs.cache_key_suffix }}
-      model_cache_key: ${{ inputs.cache_key_suffix }}
+  # train-issues:
+  #   needs: download-issues
+  #   if: ${{ inputs.train_issues && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') }}
+  #   permissions:
+  #     actions: write
+  #   uses: jeffhandley/issue-labeler/train-model@main
+  #   with:
+  #     issues: true
+  #     data_cache_key: ${{ inputs.cache_key_suffix }}
+  #     model_cache_key: ${{ inputs.cache_key_suffix }}
 
-  test-issues:
-    needs: [download-issues, train-issues]
-    if: ${{ inputs.test_issues == "true" && always() && (needs.download-issues.result == "success" || needs.download-issues.result == "skipped") && (needs.train-issues.result == 'success' || needs.train-issues.result == 'skipped') }}
-    uses: jeffhandley/issue-labeler/test-model@main
-    with:
-      issues: true
-      label_prefix: ${{ inputs.label_prefix }}
-      threshold: ${{ inputs.threshold }}
-      cache_key: ${{ inputs.cache_key_suffix }}
-      repository: ${{ inputs.repository || github.repository }}
-      github_token: ${{ inputs.github_token || github.token }}
+  # test-issues:
+  #   needs: [download-issues, train-issues]
+  #   if: ${{ inputs.test_issues && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') && (needs.train-issues.result == 'success' || needs.train-issues.result == 'skipped') }}
+  #   uses: jeffhandley/issue-labeler/test-model@main
+  #   with:
+  #     issues: true
+  #     label_prefix: ${{ inputs.label_prefix }}
+  #     threshold: ${{ inputs.threshold }}
+  #     cache_key: ${{ inputs.cache_key_suffix }}
+  #     repository: ${{ inputs.repository || github.repository }}
+  #     github_token: ${{ inputs.github_token || github.token }}
 
-  download-pulls:
-    if: ${{ inputs.download_pulls == "true" }}
-    # permissions:
-    #   pull-requests: read
-    #   actions: write
-    uses: jeffhandley/issue-labeler/download-data@main
-    with:
-      pulls: true
-      pull_limit: ${{ inputs.data_limit && fromJSON(inputs.data_limit) || 0 }}
-      label_prefix: ${{ inputs.label_prefix }}
-      cache_key: ${{ inputs.cache_key_suffix }}
-      repository: ${{ inputs.repository || github.repository }}
-      github_token: ${{ inputs.github_token || github.token }}
+  # download-pulls:
+  #   if: ${{ inputs.download_pulls }}
+  #   permissions:
+  #     pull-requests: read
+  #     actions: write
+  #   uses: jeffhandley/issue-labeler/download-data@main
+  #   with:
+  #     pulls: true
+  #     pull_limit: ${{ inputs.data_limit && fromJSON(inputs.data_limit) || 0 }}
+  #     label_prefix: ${{ inputs.label_prefix }}
+  #     cache_key: ${{ inputs.cache_key_suffix }}
+  #     repository: ${{ inputs.repository || github.repository }}
+  #     github_token: ${{ inputs.github_token || github.token }}
 
-  train-pulls:
-    needs: download-pulls
-    if: ${{ inputs.train_pulls == "true" && always() && (needs.download-pulls.result == "success" || needs.download-pulls.result == "skipped") }}
-    # permissions:
-    #   actions: write
-    uses: jeffhandley/issue-labeler/train-model@main
-    with:
-      pulls: true
-      data_cache_key: ${{ inputs.cache_key_suffix }}
-      model_cache_key: ${{ inputs.cache_key_suffix }}
+  # train-pulls:
+  #   needs: download-pulls
+  #   if: ${{ inputs.train_pulls && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') }}
+  #   permissions:
+  #     actions: write
+  #   uses: jeffhandley/issue-labeler/train-model@main
+  #   with:
+  #     pulls: true
+  #     data_cache_key: ${{ inputs.cache_key_suffix }}
+  #     model_cache_key: ${{ inputs.cache_key_suffix }}
 
-  test-pulls:
-    needs: [download-pulls, train-pulls]
-    if: ${{ inputs.test_pulls && always() && (needs.download-pulls.result == "success" || needs.download-pulls.result == "skipped") && (needs.train-pulls.result == "success" || needs.train-pulls.result == "skipped") }}
-    uses: jeffhandley/issue-labeler/test-model@main
-    with:
-      pulls: true
-      label_prefix: ${{ inputs.label_prefix }}
-      threshold: ${{ inputs.threshold }}
-      cache_key: ${{ inputs.cache_key_suffix }}
-      repository: ${{ inputs.repository || github.repository }}
-      github_token: ${{ inputs.github_token || github.token }}
+  # test-pulls:
+  #   needs: [download-pulls, train-pulls]
+  #   if: ${{ inputs.test_pulls && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') && (needs.train-pulls.result == 'success' || needs.train-pulls.result == 'skipped') }}
+  #   uses: jeffhandley/issue-labeler/test-model@main
+  #   with:
+  #     pulls: true
+  #     label_prefix: ${{ inputs.label_prefix }}
+  #     threshold: ${{ inputs.threshold }}
+  #     cache_key: ${{ inputs.cache_key_suffix }}
+  #     repository: ${{ inputs.repository || github.repository }}
+  #     github_token: ${{ inputs.github_token || github.token }}
