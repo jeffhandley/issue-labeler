@@ -8,47 +8,48 @@ branding:
 
 inputs:
   issues:
-    description: "Specify whether to download issues"
+    description: "Download issue data"
     required: true
     default: "false"
   issue_limit:
-    description: "Max number of issues to include in the model"
+    description: "Max number of issues to download (newest items are downloaded)."
     required: false
 
   pulls:
-    description: "Specify whether to download pull requests"
+    description: "Download pull data"
     required: true
     default: "false"
   pull_limit:
-    description: "Max number of pulls to include in the model"
+    description: "Max number of pulls to download (newest items are downloaded)."
     required: false
 
   label_prefix:
-    description: "Label prefix"
+    description: "The label prefix to be used for model training. Must end in a non-alphanumeric character."
     required: true
   page_size:
-    description: "The number of items to include on each request (max 100)"
+    description: "The number of items to include on each request."
     required: false
   page_limit:
-    description: "Max pages of items to download"
+    description: "Max pages of items to download."
     required: false
   retries:
-    description: "Comma-separated list of retry delays in seconds"
+    description: "Comma-separated list of retry delays in seconds."
     required: false
 
   cache_key:
-    description: "The optional cache key suffix to use for saving data"
+    description: "The cache key suffix to use for saving data. Default: 'staging'."
     required: false
+    default: "staging"
   backup_cache_key:
-    description: "The cache key suffix to use for backing up the last downloaded data"
+    description: "The cache key suffix to use for backing existing data. Default: 'backup'."
     required: false
     default: "backup"
 
   github_token:
-    description: "The GitHub token"
+    description: "The GitHub token to be used for downloading data."
     required: true
   repository:
-    description: "The org/repo to download data from (defaults to current repository)"
+    description: "The org/repo to download data from. Defaults to current repository."
     required: false
 
 runs:
@@ -59,13 +60,13 @@ runs:
       run: |
         if [[ "${{ inputs.issues }}" == 'true' ]]; then
           echo "ISSUE_DATA_PATH=labeler-cache/issue-data.tsv" >> $GITHUB_ENV
-          echo "ISSUE_CACHE_KEY=${{ format('issue-labeler/issues/data{0}', inputs.cache_key || '') }}" >> $GITHUB_ENV
-          echo "ISSUE_BACKUP_CACHE_KEY=${{ format('issue-labeler/issues/data{0}/{1}', inputs.cache_key || '', inputs.backup_cache_key) }}" >> $GITHUB_ENV
+          echo "ISSUE_CACHE_KEY=${{ format('issue-labeler/issues/data/{0}', inputs.cache_key || 'staging') }}" >> $GITHUB_ENV
+          echo "ISSUE_BACKUP_CACHE_KEY=${{ format('issue-labeler/issues/data/{0}/{1}', inputs.cache_key || 'backup', inputs.backup_cache_key) }}" >> $GITHUB_ENV
         fi
         if [[ "${{ inputs.pulls }}" == 'true' ]]; then
           echo "PULL_DATA_PATH=labeler-cache/pull-data.tsv" >> $GITHUB_ENV
-          echo "PULL_CACHE_KEY=${{ format('issue-labeler/pulls/data{0}', inputs.cache_key || '') }}" >> $GITHUB_ENV
-          echo "PULL_BACKUP_CACHE_KEY=${{ format('issue-labeler/pulls/data{0}/{1}', inputs.cache_key || '', inputs.backup_cache_key) }}" >> $GITHUB_ENV
+          echo "PULL_CACHE_KEY=${{ format('issue-labeler/pulls/data/{0}', inputs.cache_key || 'staging') }}" >> $GITHUB_ENV
+          echo "PULL_BACKUP_CACHE_KEY=${{ format('issue-labeler/pulls/data/{0}/{1}', inputs.cache_key || 'backup', inputs.backup_cache_key) }}" >> $GITHUB_ENV
         fi
 
     - name: "Restore Cache for Issues"

@@ -60,7 +60,7 @@ jobs:
       download_pulls: ${{ inputs.download_pulls }}
       train_pulls: ${{ inputs.train_pulls }}
       test_pulls: ${{ inputs.test_pulls }}
-      data_limit: ${{ inputs.data_limit && fromJSON(inputs.data_limit) || 0 }}
+      data_limit: ${{ inputs.data_limit }}
       github_token: ${{ inputs.github_token }}
       repository: ${{ inputs.repository }}
       cache_key_suffix: ${{ inputs.cache_key_suffix }}
