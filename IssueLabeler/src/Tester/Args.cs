@@ -34,6 +34,9 @@ public struct Args
             Usage:
               {{executableName}} --repo {org/repo1}[,{org/repo2},...] --label-prefix {label-prefix} [options]
 
+                Required environment variables:
+                  GITHUB_TOKEN        GitHub token to be used for API calls.
+
                 Required arguments:
                   --repo              The GitHub repositories in format org/repo (comma separated for multiple).
                   --label-prefix      Prefix for label predictions. Must end with a character other than a letter or number.
@@ -51,7 +54,6 @@ public struct Args
                   --issue-limit       Maximum number of issues to download. Default: No limit.
                   --pull-limit        Maximum number of pull requests to download. Default: No limit.
                   --excluded-authors  Comma-separated list of authors to exclude.
-                  --token             GitHub access token. Default: read from GITHUB_TOKEN env var.
             """);
 
 
@@ -60,8 +62,17 @@ public struct Args
 
     public static Args? Parse(string[] args)
     {
+        string? token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+
+        if (string.IsNullOrEmpty(token))
+        {
+            ShowUsage("Environment variable GITHUB_TOKEN is empty.");
+            return null;
+        }
+
         Args argsData = new()
         {
+            GithubToken = token,
             Threshold = 0.4f
         };
 
@@ -72,14 +83,6 @@ public struct Args
 
             switch (argument)
             {
-                case "--token":
-                    if (!ArgUtils.TryDequeueString(arguments, ShowUsage, "--token", out string? token))
-                    {
-                        return null;
-                    }
-                    argsData.GithubToken = token;
-                    break;
-
                 case "--repo":
                     if (!ArgUtils.TryDequeueRepoList(arguments, ShowUsage, "--repo", out string? org, out List<string>? repos))
                     {

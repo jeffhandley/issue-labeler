@@ -36,6 +36,10 @@ inputs:
     description: "Comma-separated list of retry delays in seconds."
     required: false
 
+  repository:
+    description: "The org/repo to download data from. Defaults to current repository."
+    required: false
+
   cache_key:
     description: "The cache key suffix to use for saving data. Default: 'staging'."
     required: false
@@ -44,13 +48,6 @@ inputs:
     description: "The cache key suffix to use for backing existing data. Default: 'backup'."
     required: false
     default: "backup"
-
-  github_token:
-    description: "The GitHub token to be used for downloading data."
-    required: true
-  repository:
-    description: "The org/repo to download data from. Defaults to current repository."
-    required: false
 
 runs:
   using: "composite"
@@ -153,7 +150,6 @@ runs:
       shell: bash
       run: |
         dotnet run -c Release --project IssueLabeler/src/Downloader -- \
-          ${{ format('--token "{0}"', inputs.github_token) }} \
           ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
           ${{ (inputs.issues == 'true' && format('--issue-data "{0}"', env.ISSUE_DATA_PATH)) || '' }} \

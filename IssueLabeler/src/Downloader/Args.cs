@@ -29,6 +29,9 @@ public struct Args
             Usage:
               {{executableName}} --repo {org/repo1}[,{org/repo2},...] --label-prefix {label-prefix} [options]
 
+              Required environment variables:
+                GITHUB_TOKEN      GitHub token to be used for API calls.
+
               Required arguments:
                 --repo              The GitHub repositories in format org/repo (comma separated for multiple).
                 --label-prefix      Prefix for label predictions. Must end with a character other than a letter or number.
@@ -46,7 +49,6 @@ public struct Args
                 --page-limit        Maximum number of pages to retrieve.
                 --excluded-authors  Comma-separated list of authors to exclude.
                 --retries           Comma-separated retry delays in seconds. Default: 30,30,300,300,3000,3000.
-                --token             GitHub access token. Default: Read from GITHUB_TOKEN env var.
                 --verbose           Enable verbose output.
             """);
 
@@ -55,8 +57,17 @@ public struct Args
 
     public static Args? Parse(string[] args)
     {
+        string? token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+
+        if (string.IsNullOrEmpty(token))
+        {
+            ShowUsage("Environment variable GITHUB_TOKEN is empty.");
+            return null;
+        }
+
         Args argsData = new()
         {
+            GithubToken = token,
             Retries = [30, 30, 300, 300, 3000, 3000]
         };
 
@@ -67,14 +78,6 @@ public struct Args
 
             switch (argument)
             {
-                case "--token":
-                    if (!ArgUtils.TryDequeueString(arguments, ShowUsage, "--token", out string? token))
-                    {
-                        return null;
-                    }
-                    argsData.GithubToken = token;
-                    break;
-
                 case "--repo":
                     if (!ArgUtils.TryDequeueRepoList(arguments, ShowUsage, "--repo", out string? org, out List<string>? repos))
                     {
@@ -170,19 +173,6 @@ public struct Args
         {
             ShowUsage();
             return null;
-        }
-
-        if (argsData.GithubToken is null)
-        {
-            string? token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
-
-            if (string.IsNullOrEmpty(token))
-            {
-                ShowUsage("Argument '--token' not specified and environment variable GITHUB_TOKEN is empty.");
-                return null;
-            }
-
-            argsData.GithubToken = token;
         }
 
         return argsData;

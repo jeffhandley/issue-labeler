@@ -42,8 +42,11 @@ on:
         default: "staging"
 
 env:
+  CACHE_KEY: ${{ inputs.cache_key_suffix }}
+  REPOSITORY: ${{ inputs.repository || github.repository }}
   LABEL_PREFIX: "area-"
   THRESHOLD: "0.40"
+  DATA_LIMIT: ${{ inputs.data_limit }}
 
 jobs:
   issues-download:
@@ -57,11 +60,12 @@ jobs:
         uses: jeffhandley/issue-labeler/download@main
         with:
           issues: true
-          cache_key: ${{ inputs.cache_key_suffix }}
-          repository: ${{ inputs.repository || github.repository }}
-          github_token: ${{ inputs.github_token || github.token }}
+          cache_key: ${{ env.CACHE_KEY }}
+          repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
-          issue_limit: ${{ inputs.data_limit }}
+          issue_limit: ${{ env.DATA_LIMIT }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   issues-train:
     needs: issues-download
@@ -74,8 +78,8 @@ jobs:
         uses: jeffhandley/issue-labeler/train@main
         with:
           issues: true
-          data_cache_key: ${{ inputs.cache_key_suffix }}
-          model_cache_key: ${{ inputs.cache_key_suffix }}
+          data_cache_key: ${{ env.CACHE_KEY }}
+          model_cache_key: ${{ env.CACHE_KEY }}
 
   issues-test:
     needs: [issues-download, issues-train]
@@ -86,11 +90,12 @@ jobs:
         uses: jeffhandley/issue-labeler/test@main
         with:
           issues: true
-          cache_key: ${{ inputs.cache_key_suffix }}
-          repository: ${{ inputs.repository || github.repository }}
-          github_token: ${{ inputs.github_token || github.token }}
-          label_prefix: ${{ inputs.label_prefix }}
-          threshold: ${{ inputs.threshold }}
+          cache_key: ${{ env.CACHE_KEY }}
+          repository: ${{ env.REPOSITORY }}
+          label_prefix: ${{ env.LABEL_PREFIX }}
+          threshold: ${{ env.THRESHOLD }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   pulls-download:
     if: ${{ inputs.pulls_download }}
@@ -103,11 +108,12 @@ jobs:
         uses: jeffhandley/issue-labeler/download@main
         with:
           pulls: true
-          cache_key: ${{ inputs.cache_key_suffix }}
-          repository: ${{ inputs.repository || github.repository }}
-          github_token: ${{ inputs.github_token || github.token }}
+          cache_key: ${{ env.CACHE_KEY }}
+          repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
-          pull_limit: ${{ inputs.data_limit }}
+          pull_limit: ${{ env.DATA_LIMIT }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   pulls-train:
     needs: pulls-download
@@ -120,8 +126,8 @@ jobs:
         uses: jeffhandley/issue-labeler/train@main
         with:
           pulls: true
-          data_cache_key: ${{ inputs.cache_key_suffix }}
-          model_cache_key: ${{ inputs.cache_key_suffix }}
+          data_cache_key: ${{ env.CACHE_KEY }}
+          model_cache_key: ${{ env.CACHE_KEY }}
 
   pulls-test:
     needs: [pulls-download, pulls-train]
@@ -132,8 +138,9 @@ jobs:
         uses: jeffhandley/issue-labeler/test@main
         with:
           pulls: true
-          cache_key: ${{ inputs.cache_key_suffix }}
-          repository: ${{ inputs.repository || github.repository }}
-          github_token: ${{ inputs.github_token || github.token }}
-          label_prefix: ${{ inputs.label_prefix }}
-          threshold: ${{ inputs.threshold }}
+          cache_key: ${{ env.CACHE_KEY }}
+          repository: ${{ env.REPOSITORY }}
+          label_prefix: ${{ env.LABEL_PREFIX }}
+          threshold: ${{ env.THRESHOLD }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
