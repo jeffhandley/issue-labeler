@@ -46,18 +46,10 @@ jobs:
 
       - name: Publish Predictor
         run: |
-          dotnet publish src/Predictor/Predictor.csproj \
+          dotnet publish IssueLabeler/src/Predictor/Predictor.csproj \
             /t:PublishContainer \
             -p DebugType=none \
             -p ContainerBaseImage=${{ env.BASE_IMAGE }} \
             -p ContainerRegistry=ghcr.io \
             -p ContainerImageTags='"${{ env.IMAGE_TAGS }}"' \
-            -p ContainerRepository=${{ env.PREDICTOR_IMAGE_NAME }} \
-            -bl
-
-      - name: Upload binlog artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: msbuild.binlog
-          path: ./predictor/src/msbuild.binlog
+            -p ContainerRepository=${{ env.PREDICTOR_IMAGE_NAME }}

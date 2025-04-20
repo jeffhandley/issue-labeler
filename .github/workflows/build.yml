@@ -22,7 +22,7 @@ jobs:
         dotnet-version: '9.x'
 
     - name: Build solution
-      run: dotnet build --configuration Release
+      run: dotnet build IssueLabeler/ --configuration Release
 
     - name: Run tests
-      run: dotnet test --configuration Release --no-build --verbosity minimal
+      run: dotnet test IssueLabeler/ --configuration Release --no-build --verbosity minimal

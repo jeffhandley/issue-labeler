@@ -34,7 +34,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\labeler-promote.yml = .github\workflows\labeler-promote.yml
 		.github\workflows\labeler-train.yml = .github\workflows\labeler-train.yml
 		.github\workflows\release.yml = .github\workflows\release.yml
-		.github\workflows\train.yml = .github\workflows\train.yml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Tests", "tests\Shared.Tests\Shared.Tests.csproj", "{DCE6AA73-1E8A-4EB1-989C-235C11E5ECA4}"
