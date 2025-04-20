@@ -1,68 +1,139 @@
-name: "Labeler: Train Models"
+name: "Labeler: Training"
 
 on:
-  # Dispatched via the Actions UI, stages new models for promotion consideration
-  # Each step of the workflow can be run independently: Download, Train, and Test
   workflow_dispatch:
     inputs:
-      download_issues:
+      issues_download:
         description: "Issues: Download Data"
         type: boolean
         default: true
-      train_issues:
+      issues_train:
         description: "Issues: Train Model"
         type: boolean
         default: true
-      test_issues:
+      issues_test:
         description: "Issues: Test Model"
         type: boolean
         default: true
-      download_pulls:
+
+      pulls_download:
         description: "Pulls: Download Data"
         type: boolean
         default: true
-      train_pulls:
+      pulls_train:
         description: "Pulls: Train Model"
         type: boolean
         default: true
-      test_pulls:
+      pulls_test:
         description: "Pulls: Test Model"
         type: boolean
         default: true
 
-      data_limit:
-        description: "Max number of items to include in the model"
-        type: number
-
-      github_token:
-        description: "The GitHub token (defaults to action token)"
-        type: string
       repository:
         description: "The org/repo to download data from (defaults to current repository)"
         type: string
+      data_limit:
+        description: "Max number of items to include in the model (newest items are used)"
+        type: number
       cache_key_suffix:
         description: "The cache key suffix to use for staging data/models (use 'LIVE' to bypass staging)"
         type: string
         required: true
         default: "staging"
 
+env:
+  LABEL_PREFIX: "area-"
+  THRESHOLD: "0.40"
+
 jobs:
-  labeler-train:
+  issues-download:
+    if: ${{ inputs.issues_download }}
     permissions:
       issues: read
+      actions: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Issues: Download Data"
+        uses: jeffhandley/issue-labeler/download-data@main
+        with:
+          issues: true
+          cache_key: ${{ inputs.cache_key_suffix }}
+          repository: ${{ inputs.repository || github.repository }}
+          github_token: ${{ inputs.github_token || github.token }}
+          label_prefix: ${{ env.LABEL_PREFIX }}
+          issue_limit: ${{ inputs.data_limit }}
+
+  issues-train:
+    needs: issues-download
+    if: ${{ inputs.issues_train && always() && (needs.issues-download.result == 'success' || needs.issues-download.result == 'skipped') }}
+    permissions:
+      actions: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Issues: Train Model"
+        uses: jeffhandley/issue-labeler/train-model@main
+        with:
+          issues: true
+          data_cache_key: ${{ inputs.cache_key_suffix }}
+          model_cache_key: ${{ inputs.cache_key_suffix }}
+
+  issues-test:
+    needs: [issues-download, issues-train]
+    if: ${{ inputs.issues_test && always() && (needs.issues-download.result == 'success' || needs.issues-download.result == 'skipped') && (needs.issues-train.result == 'success' || needs.issues-train.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Issues: Test Model"
+        uses: jeffhandley/issue-labeler/test-model@main
+        with:
+          issues: true
+          cache_key: ${{ inputs.cache_key_suffix }}
+          repository: ${{ inputs.repository || github.repository }}
+          github_token: ${{ inputs.github_token || github.token }}
+          label_prefix: ${{ inputs.label_prefix }}
+          threshold: ${{ inputs.threshold }}
+
+  pulls-download:
+    if: ${{ inputs.pulls_download }}
+    permissions:
       pull-requests: read
       actions: write
-    uses: jeffhandley/issue-labeler/.github/workflows/train.yml@main
-    with:
-      download_issues: ${{ inputs.download_issues }}
-      train_issues: ${{ inputs.train_issues }}
-      test_issues: ${{ inputs.test_issues }}
-      download_pulls: ${{ inputs.download_pulls }}
-      train_pulls: ${{ inputs.train_pulls }}
-      test_pulls: ${{ inputs.test_pulls }}
-      data_limit: ${{ inputs.data_limit }}
-      github_token: ${{ inputs.github_token }}
-      repository: ${{ inputs.repository }}
-      cache_key_suffix: ${{ inputs.cache_key_suffix }}
-      label_prefix: "area-"
-      threshold: 0.40
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Issues: Download Data"
+        uses: jeffhandley/issue-labeler/download-data@main
+        with:
+          pulls: true
+          cache_key: ${{ inputs.cache_key_suffix }}
+          repository: ${{ inputs.repository || github.repository }}
+          github_token: ${{ inputs.github_token || github.token }}
+          label_prefix: ${{ env.LABEL_PREFIX }}
+          pull_limit: ${{ inputs.data_limit }}
+
+  pulls-train:
+    needs: pulls-download
+    if: ${{ inputs.pulls_train && always() && (needs.pulls-download.result == 'success' || needs.pulls-download.result == 'skipped') }}
+    permissions:
+      actions: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Issues: Train Model"
+        uses: jeffhandley/issue-labeler/train-model@main
+        with:
+          pulls: true
+          data_cache_key: ${{ inputs.cache_key_suffix }}
+          model_cache_key: ${{ inputs.cache_key_suffix }}
+
+  pulls-test:
+    needs: [pulls-download, pulls-train]
+    if: ${{ inputs.pulls_test && always() && (needs.pulls-download.result == 'success' || needs.pulls-download.result == 'skipped') && (needs.pulls-train.result == 'success' || needs.pulls-train.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Issues: Test Model"
+        uses: jeffhandley/issue-labeler/test-model@main
+        with:
+          pulls: true
+          cache_key: ${{ inputs.cache_key_suffix }}
+          repository: ${{ inputs.repository || github.repository }}
+          github_token: ${{ inputs.github_token || github.token }}
+          label_prefix: ${{ inputs.label_prefix }}
+          threshold: ${{ inputs.threshold }}
