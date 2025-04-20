@@ -1,5 +1,10 @@
 name: "Download Data"
 description: "Download GitHub issues and/or pull requests and cache the data."
+author: "Microsoft"
+branding:
+  color: "purple"
+  icon: "tag"
+
 inputs:
   issues:
     description: "Specify whether to download issues"
@@ -38,24 +43,19 @@ inputs:
     required: false
     default: "backup"
 
+  github_token:
+    description: "The GitHub token"
+    required: true
   repository:
     description: "The org/repo to download data from (defaults to current repository)"
     required: false
-    default: ${{ github.repository }}
-  github_token:
-    description: "The GitHub token (defaults to action token)"
-    required: true
-    default: ${{ github.token }}
-
-branding:
-  color: "purple"
-  icon: "tag"
 
 runs:
   using: "composite"
   steps:
     - name: "Set Paths and Cache Keys for Issues and Pulls"
       id: set-data-paths
+      shell: bash
       run: |
         if [[ "${{ inputs.issues }}" == "true" ]]; then
           echo "ISSUE_DATA_PATH=labeler-cache/issue-data.tsv" >> $GITHUB_ENV
@@ -108,6 +108,7 @@ runs:
 
     - name: "Abort if Backup Cache Exists for Issues"
       if: ${{ inputs.issues == 'true' && steps.check-issues-backup.outputs.cache-hit == 'true' }}
+      shell: bash
       run: |
         echo "Cannot save backup of existing issue data. Backup cache key already exists."
         echo "Key: ${{ env.ISSUE_BACKUP_CACHE_KEY }}"
@@ -115,6 +116,7 @@ runs:
 
     - name: "Abort if Backup Cache Exists for Pulls"
       if: ${{ inputs.pulls == 'true' && steps.check-pulls-backup.outputs.cache-hit == 'true' }}
+      shell: bash
       run: |
         echo "Cannot save backup of existing pull data. Backup cache key already exists."
         echo "Key: ${{ env.PULL_BACKUP_CACHE_KEY }}"
@@ -147,18 +149,19 @@ runs:
         dotnet-version: "9.0.x"
 
     - name: "Run Downloader"
+      shell: bash
       run: |
         dotnet run -c Release --project ./src/Downloader -- \
-          ${{ inputs.issues == 'true' && format('--issue-data "{0}"', env.ISSUE_DATA_PATH) }} \
-          ${{ inputs.issue_limit && format('--issue-limit {0}', inputs.issue_limit) }} \
-          ${{ inputs.pulls == 'true' && format('--pull-data "{0}"', env.PULL_DATA_PATH) }} \
-          ${{ inputs.pull_limit && format('--pull-limit {0}', inputs.pull_limit) }} \
+          ${{ format('--token "{0}"', inputs.github_token) }} \
+          ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
-          ${{ inputs.page_size && format('--page-size {0}', inputs.page_size) }} \
-          ${{ inputs.page_limit && format('--page-limit {0}', inputs.page_limit) }} \
-          ${{ inputs.retries && format('--retries "{0}"', inputs.retries) }} \
-          ${{ format('--repo "{0}"', inputs.repository) }} \
-          ${{ format('--token "{0}"', inputs.github_token) }}
+          ${{ (inputs.issues == 'true' && format('--issue-data "{0}"', env.ISSUE_DATA_PATH)) || '' }} \
+          ${{ (inputs.issues == 'true' && inputs.issue_limit && format('--issue-limit {0}', inputs.issue_limit)) || '' }} \
+          ${{ (inputs.pulls == 'true' && format('--pull-data "{0}"', env.PULL_DATA_PATH)) || '' }} \
+          ${{ (inputs.pulls == 'true' && inputs.pull_limit && format('--pull-limit {0}', inputs.pull_limit)) || '' }} \
+          ${{ (inputs.page_size && format('--page-size {0}', inputs.page_size)) || '' }} \
+          ${{ (inputs.page_limit && format('--page-limit {0}', inputs.page_limit)) || '' }} \
+          ${{ (inputs.retries && format('--retries "{0}"', inputs.retries)) || '' }}
 
     - name: "Save Cache for Issues"
       if: ${{ inputs.issues == 'true' }}
