@@ -152,7 +152,7 @@ runs:
     - name: "Run Downloader"
       shell: bash
       run: |
-        dotnet run -c Release --project ./src/Downloader -- \
+        dotnet run -c Release --project IssueLabeler/src/Downloader -- \
           ${{ format('--token "{0}"', inputs.github_token) }} \
           ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \

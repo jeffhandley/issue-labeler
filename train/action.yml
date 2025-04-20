@@ -96,7 +96,7 @@ runs:
       if: ${{ inputs.issues || inputs.pulls }}
       shell: bash
       run: |
-        dotnet run -c Release --project ./src/Trainer -- \
+        dotnet run -c Release --project IssueLabeler/src/Trainer -- \
         ${{ (inputs.issues && format('--issue-data "{0}" --issue-model "{1}"', env.ISSUE_DATA_PATH, env.ISSUE_MODEL_PATH)) || '' }} \
         ${{ (inputs.pulls && format('--pull-data "{0}" --pull-model "{1}"', env.PULL_DATA_PATH, env.PULL_MODEL_PATH)) || '' }}
 

@@ -74,7 +74,7 @@ runs:
       if: inputs.issues || inputs.pulls
       shell: bash
       run: |
-        dotnet run -c Release --project ./src/Tester --  \
+        dotnet run -c Release --project IssueLabeler/src/Tester --  \
           ${{ format('--token "{0}"', inputs.github_token) }} \
           ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
