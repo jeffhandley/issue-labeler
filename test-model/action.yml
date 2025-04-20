@@ -72,13 +72,14 @@ runs:
 
     - name: "Run Tester"
       if: inputs.issues || inputs.pulls
+      shell: bash
       run: |
         dotnet run -c Release --project ./src/Tester --  \
-          ${{ inputs.issues && format('--issue-model "{0}"', 'labeler-cache/issue-model.zip') }} \
-          ${{ inputs.issues && inputs.issue_limit != null && format('--issue-limit {0}', inputs.issue_limit) }} \
-          ${{ inputs.pulls && format('--pull-model "{0}"', 'labeler-cache/pull-model.zip') }} \
-          ${{ inputs.pulls && inputs.pull_limit != null && format('--pull-limit {0}', inputs.pull_limit) }} \
+          ${{ format('--token "{0}"', inputs.github_token) }} \
+          ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
           ${{ format('--threshold {0}', inputs.threshold) }} \
-          ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
-          ${{ format('--token "{0}"', inputs.github_token) }}
+          ${{ (inputs.issues && format('--issue-model "{0}"', 'labeler-cache/issue-model.zip')) || '' }} \
+          ${{ (inputs.issues && inputs.issue_limit != null && format('--issue-limit {0}', inputs.issue_limit)) || '' }} \
+          ${{ (inputs.pulls && format('--pull-model "{0}"', 'labeler-cache/pull-model.zip')) || '' }} \
+          ${{ (inputs.pulls && inputs.pull_limit != null && format('--pull-limit {0}', inputs.pull_limit)) || '' }}

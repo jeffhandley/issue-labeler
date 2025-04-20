@@ -48,10 +48,10 @@ on:
 
 jobs:
   download-issues:
-    if: ${{ inputs.download_issues }}
-    # permissions:
-    #   issues: read
-    #   actions: write
+    if: ${{ inputs.download_issues == "true" }}
+    permissions:
+      issues: read
+      actions: write
     uses: jeffhandley/issue-labeler/download-data@main
     with:
       issues: true
@@ -63,9 +63,9 @@ jobs:
 
   train-issues:
     needs: download-issues
-    if: ${{ inputs.train_issues && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') }}
-    # permissions:
-    #   actions: write
+    if: ${{ inputs.train_issues == "true" && always() && (needs.download-issues.result == "success" || needs.download-issues.result == "skipped") }}
+    permissions:
+      actions: write
     uses: jeffhandley/issue-labeler/train-model@main
     with:
       issues: true
@@ -74,7 +74,7 @@ jobs:
 
   test-issues:
     needs: [download-issues, train-issues]
-    if: ${{ inputs.test_issues && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') && (needs.train-issues.result == 'success' || needs.train-issues.result == 'skipped') }}
+    if: ${{ inputs.test_issues == "true" && always() && (needs.download-issues.result == "success" || needs.download-issues.result == "skipped") && (needs.train-issues.result == 'success' || needs.train-issues.result == 'skipped') }}
     uses: jeffhandley/issue-labeler/test-model@main
     with:
       issues: true
@@ -85,10 +85,10 @@ jobs:
       github_token: ${{ inputs.github_token || github.token }}
 
   download-pulls:
-    if: ${{ inputs.download_pulls }}
-    # permissions:
-    #   pull-requests: read
-    #   actions: write
+    if: ${{ inputs.download_pulls == "true" }}
+    permissions:
+      pull-requests: read
+      actions: write
     uses: jeffhandley/issue-labeler/download-data@main
     with:
       pulls: true
@@ -100,9 +100,9 @@ jobs:
 
   train-pulls:
     needs: download-pulls
-    if: ${{ inputs.train_pulls && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') }}
-    # permissions:
-    #   actions: write
+    if: ${{ inputs.train_pulls == "true" && always() && (needs.download-pulls.result == "success" || needs.download-pulls.result == "skipped") }}
+    permissions:
+      actions: write
     uses: jeffhandley/issue-labeler/train-model@main
     with:
       pulls: true
@@ -111,7 +111,7 @@ jobs:
 
   test-pulls:
     needs: [download-pulls, train-pulls]
-    if: ${{ inputs.test_pulls && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') && (needs.train-pulls.result == 'success' || needs.train-pulls.result == 'skipped') }}
+    if: ${{ inputs.test_pulls && always() && (needs.download-pulls.result == "success" || needs.download-pulls.result == "skipped") && (needs.train-pulls.result == "success" || needs.train-pulls.result == "skipped") }}
     uses: jeffhandley/issue-labeler/test-model@main
     with:
       pulls: true
