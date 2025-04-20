@@ -49,9 +49,9 @@ on:
 jobs:
   download-issues:
     if: ${{ inputs.download_issues == "true" }}
-    permissions:
-      issues: read
-      actions: write
+    # permissions:
+    #   issues: read
+    #   actions: write
     uses: jeffhandley/issue-labeler/download-data@main
     with:
       issues: true
@@ -64,8 +64,8 @@ jobs:
   train-issues:
     needs: download-issues
     if: ${{ inputs.train_issues == "true" && always() && (needs.download-issues.result == "success" || needs.download-issues.result == "skipped") }}
-    permissions:
-      actions: write
+    # permissions:
+    #   actions: write
     uses: jeffhandley/issue-labeler/train-model@main
     with:
       issues: true
@@ -86,9 +86,9 @@ jobs:
 
   download-pulls:
     if: ${{ inputs.download_pulls == "true" }}
-    permissions:
-      pull-requests: read
-      actions: write
+    # permissions:
+    #   pull-requests: read
+    #   actions: write
     uses: jeffhandley/issue-labeler/download-data@main
     with:
       pulls: true
@@ -101,8 +101,8 @@ jobs:
   train-pulls:
     needs: download-pulls
     if: ${{ inputs.train_pulls == "true" && always() && (needs.download-pulls.result == "success" || needs.download-pulls.result == "skipped") }}
-    permissions:
-      actions: write
+    # permissions:
+    #   actions: write
     uses: jeffhandley/issue-labeler/train-model@main
     with:
       pulls: true
