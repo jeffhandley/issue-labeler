@@ -33,13 +33,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\labeler-predict.yml = .github\workflows\labeler-predict.yml
 		.github\workflows\labeler-promote.yml = .github\workflows\labeler-promote.yml
 		.github\workflows\labeler-train.yml = .github\workflows\labeler-train.yml
-		.github\workflows\promote-issues.yml = .github\workflows\promote-issues.yml
-		.github\workflows\promote-pulls.yml = .github\workflows\promote-pulls.yml
 		.github\workflows\release.yml = .github\workflows\release.yml
-		.github\workflows\test-issues.yml = .github\workflows\test-issues.yml
-		.github\workflows\test-pulls.yml = .github\workflows\test-pulls.yml
-		.github\workflows\train-issues.yml = .github\workflows\train-issues.yml
-		.github\workflows\train-pulls.yml = .github\workflows\train-pulls.yml
 		.github\workflows\train.yml = .github\workflows\train.yml
 	EndProjectSection
 EndProject

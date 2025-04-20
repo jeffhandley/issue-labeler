@@ -8,9 +8,6 @@ inputs:
   issue_limit:
     description: "Max number of issues to include in the model"
     required: false
-  issue_cache_key:
-    description: "The optional cache key suffix to use for saving issue data"
-    required: false
 
   pulls:
     description: "Specify whether to download pull requests"
@@ -18,9 +15,6 @@ inputs:
     default: "false"
   pull_limit:
     description: "Max number of pulls to include in the model"
-    required: false
-  pull_cache_key:
-    description: "The optional cache key suffix to use for saving pull data"
     required: false
 
   label_prefix:
@@ -36,6 +30,9 @@ inputs:
     description: "Comma-separated list of retry delays in seconds"
     required: false
 
+  cache_key:
+    description: "The optional cache key suffix to use for saving data"
+    required: false
   backup_cache_key:
     description: "The cache key suffix to use for backing up the last downloaded data"
     required: false
@@ -50,6 +47,10 @@ inputs:
     required: true
     default: ${{ github.token }}
 
+branding:
+  color: "purple"
+  icon: "tag"
+
 runs:
   using: "composite"
   steps:
@@ -58,13 +59,13 @@ runs:
       run: |
         if [[ "${{ inputs.issues }}" == "true" ]]; then
           echo "ISSUE_DATA_PATH=labeler-cache/issue-data.tsv" >> $GITHUB_ENV
-          echo "ISSUE_CACHE_KEY=${{ format('issue-labeler/issues/data{0}', inputs.issue_cache_key || '') }}" >> $GITHUB_ENV
-          echo "ISSUE_BACKUP_CACHE_KEY=${{ format('issue-labeler/issues/data{0}/{1}', inputs.issue_cache_key || '', inputs.backup_cache_key) }}" >> $GITHUB_ENV
+          echo "ISSUE_CACHE_KEY=${{ format('issue-labeler/issues/data{0}', inputs.cache_key || '') }}" >> $GITHUB_ENV
+          echo "ISSUE_BACKUP_CACHE_KEY=${{ format('issue-labeler/issues/data{0}/{1}', inputs.cache_key || '', inputs.backup_cache_key) }}" >> $GITHUB_ENV
         fi
         if [[ "${{ inputs.pulls }}" == "true" ]]; then
           echo "PULL_DATA_PATH=labeler-cache/pull-data.tsv" >> $GITHUB_ENV
-          echo "PULL_CACHE_KEY=${{ format('issue-labeler/pulls/data{0}', inputs.pull_cache_key || '') }}" >> $GITHUB_ENV
-          echo "PULL_BACKUP_CACHE_KEY=${{ format('issue-labeler/pulls/data{0}/{1}', inputs.pull_cache_key || '', inputs.backup_cache_key) }}" >> $GITHUB_ENV
+          echo "PULL_CACHE_KEY=${{ format('issue-labeler/pulls/data{0}', inputs.cache_key || '') }}" >> $GITHUB_ENV
+          echo "PULL_BACKUP_CACHE_KEY=${{ format('issue-labeler/pulls/data{0}/{1}', inputs.cache_key || '', inputs.backup_cache_key) }}" >> $GITHUB_ENV
         fi
 
     - name: "Restore Cache for Issues"

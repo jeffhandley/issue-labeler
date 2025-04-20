@@ -1,10 +1,6 @@
 name: 'Predict Issue Labels'
 description: 'Predicts issue labels using a machine learning model trained against existing issues.'
 
-branding:
-  icon: tag
-  color: purple
-
 inputs:
   issue_model:
     description: "The path to the prediction model file."
@@ -25,6 +21,10 @@ inputs:
   default_label:
     description: "The default label to apply if no prediction meets the threshold. Leave blank for no default label."
     type: string
+
+branding:
+  color: "purple"
+  icon: "tag"
 
 runs:
   using: docker

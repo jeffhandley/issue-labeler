@@ -1,0 +1,178 @@
+name: "Promote Models"
+description: "Promote the issue and/or pull models by moving them from staging to production."
+
+inputs:
+  issues:
+    description: "Promote the issue model"
+    required: true
+  pulls:
+    description: "Promote the pull model"
+    required: true
+  promoted_cache_key:
+    description: "The cache key suffix to promote to LIVE"
+    required: true
+  backup_cache_key:
+    description: "The cache key suffix to use for backing up the current LIVE model(s)"
+    required: false
+    default: "backup"
+
+branding:
+  color: "purple"
+  icon: "tag"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Set environment variables for issue promotion"
+      if: ${{ inputs.issues }}
+      run: |
+        echo "ISSUE_MODEL_PATH=labeler-cache/issue-model.zip" >> $GITHUB_ENV
+        echo "ISSUE_PROMOTED_CACHE_KEY=issue-labeler/issues/model/${{ inputs.promoted_cache_key }}" >> $GITHUB_ENV
+        echo "ISSUE_LIVE_CACHE_KEY=issue-labeler/issues/model/LIVE" >> $GITHUB_ENV
+        echo "ISSUE_BACKUP_CACHE_KEY=issue-labeler/issues/model/${{ inputs.backup_cache_key }}" >> $GITHUB_ENV
+
+    - name: "Set environment variables for pull promotion"
+      if: ${{ inputs.pulls }}
+      run: |
+        echo "PULL_MODEL_PATH=labeler-cache/pull-model.zip" >> $GITHUB_ENV
+        echo "PULL_PROMOTED_CACHE_KEY=issue-labeler/pulls/model/${{ inputs.promoted_cache_key }}" >> $GITHUB_ENV
+        echo "PULL_LIVE_CACHE_KEY=issue-labeler/pulls/model/LIVE" >> $GITHUB_ENV
+        echo "PULL_BACKUP_CACHE_KEY=issue-labeler/pulls/model/${{ inputs.backup_cache_key }}" >> $GITHUB_ENV
+
+    - name: "Check for existing backup cache entry (Issues)"
+      if: ${{ inputs.issues }}
+      id: issue-check-backup
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.ISSUE_MODEL_PATH }}
+        key: ${{ env.ISSUE_BACKUP_CACHE_KEY }}
+        lookup-only: true
+        fail-on-cache-miss: false
+
+    - name: "Check for existing backup cache entry (Pulls)"
+      if: ${{ inputs.pulls }}
+      id: pull-check-backup
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.PULL_MODEL_PATH }}
+        key: ${{ env.PULL_BACKUP_CACHE_KEY }}
+        lookup-only: true
+        fail-on-cache-miss: false
+
+    - name: "Abort if backup cache entry already exists"
+      run: |
+        ISSUE_ABORT_MESSAGE=""
+        PULL_ABORT_MESSAGE=""
+        EXIT_CODE=0
+
+        if [ "${{ inputs.issues }}" = "true" ] && [ "${{ steps.issue-check-backup.outputs.cache-hit }}" = "true" ]; then
+          ISSUE_ABORT_MESSAGE="Cannot save backup of current LIVE issue model(s). Backup cache key already exists.\nKey: ${{ env.ISSUE_BACKUP_CACHE_KEY }}"
+          EXIT_CODE=1
+        fi
+
+        if [ "${{ inputs.pulls }}" = "true" ] && [ "${{ steps.pull-check-backup.outputs.cache-hit }}" = "true" ]; then
+          PULL_ABORT_MESSAGE="Cannot save backup of current LIVE pull model(s). Backup cache key already exists.\nKey: ${{ env.PULL_BACKUP_CACHE_KEY }}"
+          EXIT_CODE=1
+        fi
+
+        if [ "$EXIT_CODE" -eq 1 ]; then
+          if [ -n "$ISSUE_ABORT_MESSAGE" ]; then
+            echo -e "$ISSUE_ABORT_MESSAGE"
+          fi
+          if [ -n "$PULL_ABORT_MESSAGE" ]; then
+            echo -e "$PULL_ABORT_MESSAGE"
+          fi
+          exit $EXIT_CODE
+        fi
+
+    - name: "Restore existing live cache entry if one exists (Issues)"
+      if: ${{ inputs.issues }}
+      id: issue-check-live
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.ISSUE_MODEL_PATH }}
+        key: ${{ env.ISSUE_LIVE_CACHE_KEY }}
+        fail-on-cache-miss: false
+
+    - name: "Restore existing live cache entry if one exists (Pulls)"
+      if: ${{ inputs.pulls }}
+      id: pull-check-live
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.PULL_MODEL_PATH }}
+        key: ${{ env.PULL_LIVE_CACHE_KEY }}
+        fail-on-cache-miss: false
+
+    - name: "Cache backup of current LIVE issue model(s)"
+      if: ${{ inputs.issues && steps.issue-check-live.outputs.cache-hit == 'true' }}
+      id: issue-backup-model
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ env.ISSUE_MODEL_PATH }}
+        key: ${{ env.ISSUE_BACKUP_CACHE_KEY }}
+
+    - name: "Cache backup of current LIVE pull model(s)"
+      if: ${{ inputs.pulls && steps.pull-check-live.outputs.cache-hit == 'true' }}
+      id: pull-backup-model
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ env.PULL_MODEL_PATH }}
+        key: ${{ env.PULL_BACKUP_CACHE_KEY }}
+
+    - name: "Remove local copy of current LIVE issue model(s)"
+      if: ${{ inputs.issues && steps.issue-check-live.outputs.cache-hit == 'true' }}
+      run: |
+        rm ${{ env.ISSUE_MODEL_PATH }}
+
+    - name: "Remove local copy of current LIVE pull model(s)"
+      if: ${{ inputs.pulls && steps.pull-check-live.outputs.cache-hit == 'true' }}
+      run: |
+        rm ${{ env.PULL_MODEL_PATH }}
+
+    - name: "Restore model to be promoted from cache (Issues)"
+      if: ${{ inputs.issues }}
+      id: issue-restore-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.ISSUE_MODEL_PATH }}
+        key: ${{ env.ISSUE_PROMOTED_CACHE_KEY }}
+        fail-on-cache-miss: true
+
+    - name: "Restore model to be promoted from cache (Pulls)"
+      if: ${{ inputs.pulls }}
+      id: pull-restore-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.PULL_MODEL_PATH }}
+        key: ${{ env.PULL_PROMOTED_CACHE_KEY }}
+        fail-on-cache-miss: true
+
+    - name: "Delete existing live cache entry (Issues)"
+      if: ${{ inputs.issues && steps.issue-check-live.outputs.cache-hit == 'true' }}
+      run: |
+        gh api --method DELETE \
+          -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          /repos/${{ github.repository }}/actions/caches?key=${{ env.ISSUE_LIVE_CACHE_KEY }}
+
+    - name: "Delete existing live cache entry (Pulls)"
+      if: ${{ inputs.pulls && steps.pull-check-live.outputs.cache-hit == 'true' }}
+      run: |
+        gh api --method DELETE \
+          -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          /repos/${{ github.repository }}/actions/caches?key=${{ env.PULL_LIVE_CACHE_KEY }}
+
+    - name: "Save promoted issue model to live cache"
+      if: ${{ inputs.issues }}
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ env.ISSUE_MODEL_PATH }}
+        key: ${{ env.ISSUE_LIVE_CACHE_KEY }}
+
+    - name: "Save promoted pull model to live cache"
+      if: ${{ inputs.pulls }}
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ env.PULL_MODEL_PATH }}
+        key: ${{ env.PULL_LIVE_CACHE_KEY }}
