@@ -18,13 +18,13 @@ on:
         type: boolean
 
 env:
-  ISSUE_MODEL_PATH: labeler-cache/issue-model.zip
-  PULL_MODEL_PATH:  labeler-cache/pull-model.zip
+  ISSUE_MODEL_PATH: labeler-cache/issues-model.zip
+  PULL_MODEL_PATH:  labeler-cache/pulls-model.zip
   ISSUE_MODEL_CACHE_KEY: issue-labeler/issues/model/${{ inputs.model_cache_key }}
   PULL_MODEL_CACHE_KEY:  issue-labeler/pulls/model/${{ inputs.model_cache_key }}
 
 jobs:
-  issue-model:
+  issues-model:
     # Do not run the job on forks outside the 'jeffhandley' org
     if: ${{ github.repository_owner == 'jeffhandley' && !inputs.skip_issue_model }}
     runs-on: ubuntu-latest
@@ -36,7 +36,7 @@ jobs:
           key:  ${{ env.ISSUE_MODEL_CACHE_KEY }}
           fail-on-cache-miss: true
 
-  pull-model:
+  pulls-model:
     # Do not run the job on forks outside the 'jeffhandley' org
     if: ${{ github.repository_owner == 'jeffhandley' && !inputs.skip_pull_model }}
     runs-on: ubuntu-latest

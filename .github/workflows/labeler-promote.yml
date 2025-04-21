@@ -13,13 +13,13 @@ on:
         description: "Pulls: Promote Model"
         type: boolean
         required: true
-      cache_key:
-        description: "The cache key suffix to promote into the 'LIVE' cache"
+      source_key:
+        description: "The cache key suffix to promote to ACTIVE"
         type: string
         required: true
         default: "staging"
-      backup_cache_key:
-        description: "The cache key suffix to use for backing up the currently promoted model"
+      backup_key:
+        description: "The cache key suffix to use for backing up the currently active model"
         type: string
         default: "backup"
 
@@ -27,14 +27,24 @@ permissions:
   actions: write
 
 jobs:
-  promote:
-    if: ${{ inputs.issues || inputs.pulls }}
+  issues:
+    if: ${{ inputs.issues }}
     runs-on: ubuntu-latest
     steps:
-      - name: "Promote Trained Model to LIVE"
+      - name: "Promote Issues Model"
         uses: jeffhandley/issue-labeler/promote@main
         with:
-          issues: ${{ inputs.issues }}
-          pulls: ${{ inputs.pulls }}
-          cache_key: ${{ inputs.cache_key }}
-          backup_cache_key: ${{ inputs.backup_cache_key }}
+          model: "issues"
+          source_key: ${{ inputs.source_key }}
+          backup_key: ${{ inputs.backup_key }}
+
+  pulls:
+    if: ${{ inputs.pulls }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Promote Pulls Model"
+        uses: jeffhandley/issue-labeler/promote@main
+        with:
+          model: "pulls"
+          source_key: ${{ inputs.source_key }}
+          backup_key: ${{ inputs.backup_key }}

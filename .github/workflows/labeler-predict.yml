@@ -33,12 +33,12 @@ on:
         description: "The cache key suffix to use for loading the model"
         type: string
         required: true
-        default: "LIVE"
+        default: "ACTIVE"
 
 env:
-  ISSUE_MODEL_PATH: labeler-cache/issue-model.zip
+  ISSUE_MODEL_PATH: labeler-cache/issues-model.zip
   ISSUE_MODEL_CACHE_KEY: issue-labeler/issues/model/${{ inputs.cache_key }}
-  PULL_MODEL_PATH: labeler-cache/pull-model.zip
+  PULL_MODEL_PATH: labeler-cache/pulls-model.zip
   PULL_MODEL_CACHE_KEY: issue-labeler/pulls/model/${{ inputs.cache_key }}
   THRESHOLD: 0.40
   LABEL_PREFIX: "area-"

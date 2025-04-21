@@ -28,7 +28,7 @@ runs:
       run: |
         echo "ISSUE_DATA_PATH=labeler-cache/issue-data.tsv" >> $GITHUB_ENV
         echo "ISSUE_DATA_CACHE_KEY=${{ format('issue-labeler/issues/data{0}', inputs.data_cache_key && format('/{0}', inputs.data_cache_key) || '') }}" >> $GITHUB_ENV
-        echo "ISSUE_MODEL_PATH=labeler-cache/issue-model.zip" >> $GITHUB_ENV
+        echo "ISSUE_MODEL_PATH=labeler-cache/issues-model.zip" >> $GITHUB_ENV
         echo "ISSUE_MODEL_CACHE_KEY=${{ format('issue-labeler/issues/model/{0}', inputs.model_cache_key) }}" >> $GITHUB_ENV
         echo "ISSUE_BACKUP_CACHE_KEY=${{ format('issue-labeler/issues/model/{0}/backup', inputs.model_cache_key) }}" >> $GITHUB_ENV
 
@@ -38,7 +38,7 @@ runs:
       run: |
         echo "PULL_DATA_PATH=labeler-cache/pull-data.tsv" >> $GITHUB_ENV
         echo "PULL_DATA_CACHE_KEY=${{ format('issue-labeler/pulls/data{0}', inputs.data_cache_key && format('/{0}', inputs.data_cache_key) || '') }}" >> $GITHUB_ENV
-        echo "PULL_MODEL_PATH=labeler-cache/pull-model.zip" >> $GITHUB_ENV
+        echo "PULL_MODEL_PATH=labeler-cache/pulls-model.zip" >> $GITHUB_ENV
         echo "PULL_MODEL_CACHE_KEY=${{ format('issue-labeler/pulls/model/{0}', inputs.model_cache_key) }}" >> $GITHUB_ENV
         echo "PULL_BACKUP_CACHE_KEY=${{ format('issue-labeler/pulls/model/{0}/backup', inputs.model_cache_key) }}" >> $GITHUB_ENV
 
@@ -97,8 +97,8 @@ runs:
       shell: bash
       run: |
         dotnet run -c Release --project IssueLabeler/src/Trainer -- \
-        ${{ (inputs.issues && format('--issue-data "{0}" --issue-model "{1}"', env.ISSUE_DATA_PATH, env.ISSUE_MODEL_PATH)) || '' }} \
-        ${{ (inputs.pulls && format('--pull-data "{0}" --pull-model "{1}"', env.PULL_DATA_PATH, env.PULL_MODEL_PATH)) || '' }}
+        ${{ (inputs.issues && format('--issue-data "{0}" --issues-model "{1}"', env.ISSUE_DATA_PATH, env.ISSUE_MODEL_PATH)) || '' }} \
+        ${{ (inputs.pulls && format('--pull-data "{0}" --pulls-model "{1}"', env.PULL_DATA_PATH, env.PULL_MODEL_PATH)) || '' }}
 
     - name: "Save Model Cache for Issues"
       if: ${{ inputs.issues }}

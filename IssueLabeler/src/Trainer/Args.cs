@@ -23,13 +23,13 @@ public struct Args
             Usage:
               {{executableName}} [options]
 
-                Required for training the issue model:
-                  --issue-data        Path to existing issue data file (TSV file).
-                  --issue-model       Path for issue prediction model file to create (ZIP file).
+                Required for training the issues model:
+                  --issues-data       Path to existing issue data file (TSV file).
+                  --issues-model      Path for issue prediction model file to create (ZIP file).
 
-                Required for training the pull request model:
-                  --pull-data         Path to existing pull request data file (TSV file).
-                  --pull-model        Path for pull request prediction model file to create (ZIP file).
+                Required for training the pull requests model:
+                  --pulls-data        Path to existing pull request data file (TSV file).
+                  --pulls-model       Path for pull request prediction model file to create (ZIP file).
             """);
 
         Environment.Exit(1);
@@ -54,8 +54,8 @@ public struct Args
                     argsData.IssueDataPath = issueDataPath;
                     break;
 
-                case "--issue-model":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--issue-model", out string? issueModelPath))
+                case "--issues-model":
+                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-model", out string? issueModelPath))
                     {
                         return null;
                     }
@@ -70,8 +70,8 @@ public struct Args
                     argsData.PullDataPath = pullDataPath;
                     break;
 
-                case "--pull-model":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--pull-model", out string? pullModelPath))
+                case "--pulls-model":
+                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-model", out string? pullModelPath))
                     {
                         return null;
                     }

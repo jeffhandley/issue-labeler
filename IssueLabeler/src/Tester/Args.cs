@@ -41,13 +41,13 @@ public struct Args
                   --repo              The GitHub repositories in format org/repo (comma separated for multiple).
                   --label-prefix      Prefix for label predictions. Must end with a character other than a letter or number.
 
-                Required for testing the issue model:
-                  --issue-data        Path to existing issue data file (TSV file).
-                  --issue-model       Path to existing issue prediction model file (ZIP file).
+                Required for testing the issues model:
+                  --issues-data       Path to existing issue data file (TSV file).
+                  --issues-model      Path to existing issue prediction model file (ZIP file).
 
-                Required for testing the pull request model:
-                  --pull-data         Path to existing pull request data file (TSV file).
-                  --pull-model        Path to existing pull request prediction model file (ZIP file).
+                Required for testing the pull requests model:
+                  --pulls-data        Path to existing pull request data file (TSV file).
+                  --pulls-model       Path to existing pull request prediction model file (ZIP file).
 
                 Optional arguments:
                   --threshold         Minimum prediction confidence threshold. Range (0,1]. Default 0.4.
@@ -100,8 +100,8 @@ public struct Args
                     argsData.IssueDataPath = issueDataPath;
                     break;
 
-                case "--issue-model":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--issue-model", out string? issueModelPath))
+                case "--issues-model":
+                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-model", out string? issueModelPath))
                     {
                         return null;
                     }
@@ -124,8 +124,8 @@ public struct Args
                     argsData.PullDataPath = pullDataPath;
                     break;
 
-                case "--pull-model":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--pull-model", out string? pullModelPath))
+                case "--pulls-model":
+                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-model", out string? pullModelPath))
                     {
                         return null;
                     }

@@ -48,7 +48,7 @@ runs:
       id: restore-issue-cache
       uses: actions/cache/restore@v4
       with:
-        path: labeler-cache/issue-model.zip
+        path: labeler-cache/issues-model.zip
         key: issue-labeler/issues/model/${{ inputs.cache_key }}
         fail-on-cache-miss: true
 
@@ -57,7 +57,7 @@ runs:
       id: restore-pull-cache
       uses: actions/cache/restore@v4
       with:
-        path: labeler-cache/pull-model.zip
+        path: labeler-cache/pulls-model.zip
         key: issue-labeler/pulls/model/${{ inputs.cache_key }}
         fail-on-cache-miss: true
 
@@ -75,7 +75,7 @@ runs:
           ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
           ${{ format('--threshold {0}', inputs.threshold) }} \
-          ${{ (inputs.issues && format('--issue-model "{0}"', 'labeler-cache/issue-model.zip')) || '' }} \
+          ${{ (inputs.issues && format('--issues-model "{0}"', 'labeler-cache/issues-model.zip')) || '' }} \
           ${{ (inputs.issues && inputs.issue_limit != null && format('--issue-limit {0}', inputs.issue_limit)) || '' }} \
-          ${{ (inputs.pulls && format('--pull-model "{0}"', 'labeler-cache/pull-model.zip')) || '' }} \
+          ${{ (inputs.pulls && format('--pulls-model "{0}"', 'labeler-cache/pulls-model.zip')) || '' }} \
           ${{ (inputs.pulls && inputs.pull_limit != null && format('--pull-limit {0}', inputs.pull_limit)) || '' }}
