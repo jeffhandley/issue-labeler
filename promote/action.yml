@@ -20,6 +20,7 @@ runs:
   using: "composite"
   steps:
     - name: "Validate Inputs"
+      shell: bash
       run: |
         if [[ "${{ inputs.model }}" != "issues" && "${{ inputs.model }}" != "pulls" ]]; then
           echo "Invalid model: ${{ inputs.model }}. Must be 'issues' or 'pulls'."
