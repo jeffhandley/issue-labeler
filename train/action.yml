@@ -3,11 +3,11 @@ description: "Train the issue and/or pull models for label prediction."
 
 inputs:
   issues:
-    description: "Set to true to train the issues model"
-    required: true
+    description: "Train the issues model"
+    required: false
   pulls:
-    description: "Set to true to train the pulls model"
-    required: true
+    description: "Train the pulls model"
+    required: false
   data_cache_key:
     description: "The cache key suffix to use for the downloaded data"
     required: true
@@ -22,6 +22,13 @@ branding:
 runs:
   using: "composite"
   steps:
+    - name: "Validate Inputs"
+      run: |
+        if [[ "${{ inputs.issues }}" != "true" && "${{ inputs.pulls }}" != "true" ]]; then
+          echo "Error: At least one of 'issues' or 'pulls' must be set to true."
+          exit 1
+        fi
+
     - name: "Set Environment Variables for Issues"
       if: ${{ inputs.issues }}
       shell: bash
@@ -40,8 +47,43 @@ runs:
         echo "PULL_MODEL_PATH=labeler-cache/pulls-model.zip" >> $GITHUB_ENV
         echo "PULL_MODEL_CACHE_KEY=${{ format('issue-labeler/model/pulls/{0}', inputs.model_cache_key) }}" >> $GITHUB_ENV
 
-    # Check out the repository before restoring the cache
-    # This ensures that any restored files are not removed during the checkout process
+    - name: "Check for an existing issues model"
+      if: ${{ inputs.issues }}
+      id: check-cache-issues
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.ISSUE_MODEL_PATH }}
+        key: ${{ env.ISSUE_MODEL_CACHE_KEY }}
+        lookup-only: true
+
+    - name: "Check for an existing pulls model"
+      if: ${{ inputs.pulls }}
+      id: check-cache-pulls
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ env.PULL_MODEL_PATH }}
+        key: ${{ env.PULL_MODEL_CACHE_KEY }}
+        lookup-only: true
+
+    - name: "Abort if there is an existing issues model or pulls model with the specified cache key"
+      if: ${{ inputs.issues || inputs.pulls }}
+      run: |
+        CACHE_EXISTS=false
+
+        if [[ "${{ inputs.issues }}" == "true" && "${{ steps.check-cache-issues.outputs.cache-hit }}" == "true" ]]; then
+          echo "Model cache key for issues already exists: ${{ env.ISSUE_MODEL_CACHE_KEY }}"
+          CACHE_EXISTS=true
+        fi
+
+        if [[ "${{ inputs.pulls }}" == "true" && "${{ steps.check-cache-pulls.outputs.cache-hit }}" == "true" ]]; then
+          echo "Model cache key for pulls already exists: ${{ env.PULL_MODEL_CACHE_KEY }}"
+          CACHE_EXISTS=true
+        fi
+
+        if [[ "$CACHE_EXISTS" == "true" ]]; then
+          exit 1
+        fi
+
     - name: "Check out the 'jeffhandley/issue-labeler' repo"
       uses: actions/checkout@v4
       with:
@@ -65,24 +107,6 @@ runs:
         path: ${{ env.PULL_DATA_PATH }}
         key: ${{ env.PULL_DATA_CACHE_KEY }}
         fail-on-cache-miss: true
-
-    - name: "Restore Model Cache for Issues"
-      if: ${{ inputs.issues }}
-      id: check-cache-issues
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ env.ISSUE_MODEL_PATH }}
-        key: ${{ env.ISSUE_MODEL_CACHE_KEY }}
-        fail-on-cache-miss: false
-
-    - name: "Restore Model Cache for Pulls"
-      if: ${{ inputs.pulls }}
-      id: check-cache-pulls
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ env.PULL_MODEL_PATH }}
-        key: ${{ env.PULL_MODEL_CACHE_KEY }}
-        fail-on-cache-miss: false
 
     - name: "Setup .NET SDK"
       if: ${{ inputs.issues || inputs.pulls }}
