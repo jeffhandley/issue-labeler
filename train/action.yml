@@ -23,6 +23,7 @@ runs:
   using: "composite"
   steps:
     - name: "Validate Inputs"
+      shell: bash
       run: |
         if [[ "${{ inputs.issues }}" != "true" && "${{ inputs.pulls }}" != "true" ]]; then
           echo "Error: At least one of 'issues' or 'pulls' must be set to true."
@@ -67,6 +68,7 @@ runs:
 
     - name: "Abort if there is an existing issues model or pulls model with the specified cache key"
       if: ${{ inputs.issues || inputs.pulls }}
+      shell: bash
       run: |
         CACHE_EXISTS=false
 
