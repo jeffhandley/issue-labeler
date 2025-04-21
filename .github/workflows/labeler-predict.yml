@@ -21,11 +21,11 @@ on:
   # Allow dispatching the workflow via the Actions UI, specifying ranges of numbers
   workflow_dispatch:
     inputs:
-      issue_numbers:
+      issues:
         description: "Issue Numbers (comma-separated list of ranges)"
         type: string
 
-      pull_numbers:
+      pulls:
         description: "Pull Numbers (comma-separated list of ranges)"
         type: string
 
@@ -43,7 +43,7 @@ env:
 jobs:
   predict:
     # Do not run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == 'jeffhandley' && (inputs.issue_numbers || github.event.issue.number) }}
+    if: ${{ github.repository_owner == 'jeffhandley' && (inputs.issues || github.event.issue.number) }}
     permissions:
       issues: write
 
@@ -51,22 +51,22 @@ jobs:
 
     steps:
       - name: "Restore issues model from cache"
-        if: ${{ inputs.issue_numbers || github.event == 'issues' }}
+        if: ${{ inputs.issues || github.event == 'issues' }}
         uses: jeffhandley/issue-labeler/restore@main
         with:
           model: issues
 
       - name: "Restore pulls model from cache"
-        if: ${{ inputs.pull_numbers || github.event == 'pull_request_target' }}
+        if: ${{ inputs.pulls || github.event == 'pull_request_target' }}
         uses: jeffhandley/issue-labeler/restore@main
         with:
           model: pulls
 
       - name: "Predict issue labels"
-        if: ${{ inputs.issue_numbers || github.event == 'issues' }}
+        if: ${{ inputs.issues || github.event == 'issues' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
-          issue_numbers: ${{ inputs.issue_numbers || github.event.issue.number }}
+          issues:        ${{ inputs.issues || github.event.issue.number }}
           label_prefix:  ${{ env.LABEL_PREFIX }}
           threshold:     ${{ env.THRESHOLD }}
           default_label: ${{ env.DEFAULT_LABEL }}
@@ -74,10 +74,10 @@ jobs:
           GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
 
       - name: "Predict pull labels"
-        if: ${{ inputs.pull_numbers || github.event == 'pull_request_target' }}
+        if: ${{ inputs.pulls || github.event == 'pull_request_target' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
-          pull_numbers:  ${{ inputs.pull_numbers || github.event.number }}
+          pulls:         ${{ inputs.pulls || github.event.number }}
           label_prefix:  ${{ env.LABEL_PREFIX }}
           threshold:     ${{ env.THRESHOLD }}
           default_label: ${{ env.DEFAULT_LABEL }}

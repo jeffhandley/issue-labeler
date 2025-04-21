@@ -2,18 +2,10 @@ name: 'Predict Issue Labels'
 description: 'Predicts issue labels using a machine learning model trained against existing issues.'
 
 inputs:
-  issues_model:
-    description: "The path to the issues model file."
-    required: true
-    default: "labeler-cache/issues-model.zip"
-  issue_numbers:
+  issues:
     description: 'The issue numbers to predict labels for, specified as a comma-separated list of numbers or number ranges.'
     required: true
-  pulls_model:
-    description: "The path to the pulls model file."
-    required: true
-    default: "labeler-cache/pulls-model.zip"
-  pull_numbers:
+  pulls:
     description: 'The pull request numbers to predict labels for, specified as a comma-separated list of numbers or number ranges.'
     required: true
   label_prefix:
@@ -32,3 +24,6 @@ branding:
 runs:
   using: docker
   image: docker://ghcr.io/jeffhandley/issue-labeler/predictor:main
+  env:
+    INPUT_ISSUES_MODEL: "labeler-cache/issues-model.zip"
+    INPUT_PULLS_MODEL:  "labeler-cache/pulls-model.zip"

@@ -27,7 +27,6 @@ runs:
         fi
 
     - name: "Restore model from cache"
-      if: ${{ inputs.issues }}
       uses: actions/cache/restore@v4
       with:
         path: labeler-cache/${{ inputs.model }}-model.zip

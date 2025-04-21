@@ -12,10 +12,10 @@ public struct Args
     public string Org { get; set; }
     public string Repo { get; set; }
     public string GithubToken { get; set; }
-    public string? IssueModelPath { get; set; }
-    public List<ulong>? IssueNumbers { get; set; }
-    public string? PullModelPath { get; set; }
-    public List<ulong>? PullNumbers { get; set; }
+    public string? IssuesModelPath { get; set; }
+    public List<ulong>? Issues { get; set; }
+    public string? PullsModelPath { get; set; }
+    public List<ulong>? Pulls { get; set; }
     public float Threshold { get; set; }
     public Func<string, bool> LabelPredicate { get; set; }
     public string? DefaultLabel { get; set; }
@@ -39,14 +39,13 @@ public struct Args
                                 Must end with a non-alphanumeric character.
 
             Required for predicting issue labels:
-              issue_model       Path to existing issue prediction model file (ZIP file).
-
-              issue_numbers     Comma-separated list of issue number ranges.
+              issues_model      Path to the issue prediction model file (ZIP file).
+              issues            Comma-separated list of issue number ranges.
                                 Example: 1-3,7,5-9.
 
             Required for predicting pull request labels:
-              pull_model        Path to existing pull request prediction model file (ZIP file).
-              pull_numbers      Comma-separated list of pull request number ranges.
+              pulls_model       Path to the pull request prediction model file (ZIP file).
+              pulls             Comma-separated list of pull request number ranges.
                                 Example: 1-3,7,5-9.
 
             Optional inputs:
@@ -83,10 +82,10 @@ public struct Args
         ArgUtils.TryGetRequiredString("GITHUB_TOKEN", Environment.GetEnvironmentVariable, out var token, ShowUsage);
         ArgUtils.TryParseRepo("repo", i => action.GetInput(i), out var org, out var repo, ShowUsage);
         ArgUtils.TryParseLabelPrefix("label_prefix", i => action.GetInput(i), out var labelPredicate, ShowUsage);
-        ArgUtils.TryParsePath("issue_model", i => action.GetInput(i), out var issueModelPath);
-        ArgUtils.TryParseNumberRanges("issue_numbers", i => action.GetInput(i), out var issueNumbers, ShowUsage);
-        ArgUtils.TryParsePath("pull_model", i => action.GetInput(i), out var pullModelPath);
-        ArgUtils.TryParseNumberRanges("pull_numbers", i => action.GetInput(i), out var pullNumbers, ShowUsage);
+        ArgUtils.TryParsePath("issues_model", i => action.GetInput(i), out var issuesModelPath);
+        ArgUtils.TryParseNumberRanges("issues", i => action.GetInput(i), out var issues, ShowUsage);
+        ArgUtils.TryParsePath("pulls_model", i => action.GetInput(i), out var pullsModelPath);
+        ArgUtils.TryParseNumberRanges("pulls", i => action.GetInput(i), out var pulls, ShowUsage);
         ArgUtils.TryParseStringArray("excluded_authors", i => action.GetInput(i), out var excludedAuthors);
         ArgUtils.TryParseFloat("threshold", i => action.GetInput(i), out var threshold, ShowUsage);
         ArgUtils.TryParseIntArray("retries", i => action.GetInput(i), out var retries, ShowUsage);
@@ -96,9 +95,7 @@ public struct Args
         ArgUtils.GetFlag("verbose", i => action.GetInput(i), out var verbose, ShowUsage);
 
         if (token is null || org is null || repo is null || threshold is null || labelPredicate is null ||
-            (issueModelPath is null != issueNumbers is null) ||
-            (pullModelPath is null != pullNumbers is null) ||
-            (issueModelPath is null && pullModelPath is null))
+            (issues is null && pulls is null))
         {
             ShowUsage();
             return null;
@@ -111,10 +108,10 @@ public struct Args
             Repo = repo,
             LabelPredicate = labelPredicate,
             DefaultLabel = defaultLabel,
-            IssueModelPath = issueModelPath,
-            IssueNumbers = issueNumbers,
-            PullModelPath = pullModelPath,
-            PullNumbers = pullNumbers,
+            IssuesModelPath = issuesModelPath,
+            Issues = issues,
+            PullsModelPath = pullsModelPath,
+            Pulls = pulls,
             ExcludedAuthors = excludedAuthors,
             Threshold = threshold ?? 0.4f,
             Retries = retries ?? [30, 30, 300, 300, 3000, 3000],

@@ -10,15 +10,15 @@ if (config is not Args argsData) return;
 
 List<Task<(ModelType Type, ulong Number, bool Success, string[] Output)>> tasks = new();
 
-if (argsData.IssueModelPath is not null && argsData.IssueNumbers is not null)
+if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
 {
     Console.WriteLine("Loading issues model...");
     var issueContext = new MLContext();
-    var issueModel = issueContext.Model.Load(argsData.IssueModelPath, out _);
+    var issueModel = issueContext.Model.Load(argsData.IssuesModelPath, out _);
     var issuePredictor = issueContext.Model.CreatePredictionEngine<Issue, LabelPrediction>(issueModel);
     Console.WriteLine("Issues prediction engine ready.");
 
-    foreach (ulong issueNumber in argsData.IssueNumbers)
+    foreach (ulong issueNumber in argsData.Issues)
     {
         var result = await GitHubApi.GetIssue(argsData.GithubToken, argsData.Org, argsData.Repo, issueNumber, argsData.Retries, argsData.Verbose);
 
@@ -49,15 +49,15 @@ if (argsData.IssueModelPath is not null && argsData.IssueNumbers is not null)
     }
 }
 
-if (argsData.PullModelPath is not null && argsData.PullNumbers is not null)
+if (argsData.PullsModelPath is not null && argsData.Pulls is not null)
 {
     Console.WriteLine("Loading pulls model...");
     var pullContext = new MLContext();
-    var pullModel = pullContext.Model.Load(argsData.PullModelPath, out _);
+    var pullModel = pullContext.Model.Load(argsData.PullsModelPath, out _);
     var pullPredictor = pullContext.Model.CreatePredictionEngine<PullRequest, LabelPrediction>(pullModel);
     Console.WriteLine("Pulls prediction engine ready.");
 
-    foreach (ulong pullNumber in argsData.PullNumbers)
+    foreach (ulong pullNumber in argsData.Pulls)
     {
         var result = await GitHubApi.GetPullRequest(argsData.GithubToken, argsData.Org, argsData.Repo, pullNumber, argsData.Retries, argsData.Verbose);
 
