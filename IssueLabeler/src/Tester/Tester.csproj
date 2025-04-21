@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="GitHub.Actions.Core" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.ML" />
-    <PackageReference Include="GitHub.Actions.Core" />
   </ItemGroup>
 
   <ItemGroup>

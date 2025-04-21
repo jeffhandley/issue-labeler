@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
+using Actions.Core.Services;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
@@ -51,9 +52,10 @@ public class GitHubApi
         int pageLimit,
         int[] retries,
         string[] excludedAuthors,
+        ICoreService action,
         bool verbose = false)
     {
-        await foreach (var item in DownloadItems<Issue>("issues", githubToken, org, repo, labelPredicate, IssuesLimit, pageSize, pageLimit, retries, excludedAuthors, verbose))
+        await foreach (var item in DownloadItems<Issue>("issues", githubToken, org, repo, labelPredicate, IssuesLimit, pageSize, pageLimit, retries, excludedAuthors, action, verbose))
         {
             yield return (item.Item, item.Label);
         }
@@ -69,9 +71,10 @@ public class GitHubApi
         int pageLimit,
         int[] retries,
         string[] excludedAuthors,
+        ICoreService action,
         bool verbose = false)
     {
-        var items = DownloadItems<PullRequest>("pullRequests", githubToken, org, repo, labelPredicate, PullsLimit, pageSize, pageLimit, retries, excludedAuthors, verbose);
+        var items = DownloadItems<PullRequest>("pullRequests", githubToken, org, repo, labelPredicate, PullsLimit, pageSize, pageLimit, retries, excludedAuthors, action, verbose);
 
         await foreach (var item in items)
         {
@@ -90,6 +93,7 @@ public class GitHubApi
         int pageLimit,
         int[] retries,
         string[] excludedAuthors,
+        ICoreService action,
         bool verbose) where T : Issue
     {
         pageSize = Math.Min(pageSize, 100);
@@ -105,7 +109,7 @@ public class GitHubApi
 
         do
         {
-            Console.WriteLine($"Downloading {itemQueryName} page {pageNumber + 1} from {org}/{repo}...{(retry > 0 ? $" (retry {retry} of {retries.Length}) " : "")}{(after is not null ? $" (cursor: '{after}')" : "")}");
+            action.WriteInfo($"Downloading {itemQueryName} page {pageNumber + 1} from {org}/{repo}...{(retry > 0 ? $" (retry {retry} of {retries.Length}) " : "")}{(after is not null ? $" (cursor: '{after}')" : "")}");
 
             Page<T> page;
 
@@ -120,16 +124,16 @@ public class GitHubApi
                 ex is TaskCanceledException
             )
             {
-                Console.WriteLine($"Exception caught during query.\n  {ex.Message}");
+                action.WriteInfo($"Exception caught during query.\n  {ex.Message}");
 
                 if (retry >= retries.Length - 1)
                 {
-                    Console.WriteLine($"Retry limit of {retries.Length} reached. Aborting.");
+                    action.WriteNotice($"Retry limit of {retries.Length} reached. Aborting.");
                     break;
                 }
                 else
                 {
-                    Console.WriteLine($"Waiting {retries[retry]} seconds before retry {retry + 1} of {retries.Length}...");
+                    action.WriteInfo($"Waiting {retries[retry]} seconds before retry {retry + 1} of {retries.Length}...");
                     await Task.Delay(retries[retry] * 1000);
                     retry++;
 
@@ -139,7 +143,7 @@ public class GitHubApi
 
             if (after == page.EndCursor)
             {
-                Console.WriteLine($"Paging did not progress. Cursor: '{after}'. Aborting.");
+                action.WriteNotice($"Paging did not progress. Cursor: '{after}'. Aborting.");
                 break;
             }
 
@@ -154,7 +158,7 @@ public class GitHubApi
             {
                 if (item.Author?.Login is not null && excludedAuthors.Contains(item.Author.Login, StringComparer.InvariantCultureIgnoreCase))
                 {
-                    if (verbose) Console.WriteLine($"{itemQueryName} {org}/{repo}#{item.Number} - Excluded from output. Author '{item.Author.Login}' is in excluded list.");
+                    if (verbose) action.WriteInfo($"{itemQueryName} {org}/{repo}#{item.Number} - Excluded from output. Author '{item.Author.Login}' is in excluded list.");
                     continue;
                 }
 
@@ -162,7 +166,7 @@ public class GitHubApi
                 // labels that were not loaded and the model is incomplete.
                 if (item.Labels.HasNextPage)
                 {
-                    if (verbose) Console.WriteLine($"{itemQueryName} {org}/{repo}#{item.Number} - Excluded from output. Not all labels were loaded.");
+                    if (verbose) action.WriteInfo($"{itemQueryName} {org}/{repo}#{item.Number} - Excluded from output. Not all labels were loaded.");
                     continue;
                 }
 
@@ -170,12 +174,12 @@ public class GitHubApi
                 string[] labels = Array.FindAll(item.LabelNames, labelPredicate);
                 if (labels.Length != 1)
                 {
-                    if (verbose) Console.WriteLine($"{itemQueryName} {org}/{repo}#{item.Number} - Excluded from output. {labels.Length} applicable labels found.");
+                    if (verbose) action.WriteInfo($"{itemQueryName} {org}/{repo}#{item.Number} - Excluded from output. {labels.Length} applicable labels found.");
                     continue;
                 }
 
                 // Exactly one applicable label was found on the item. Include it in the model.
-                if (verbose) Console.WriteLine($"{itemQueryName} {org}/{repo}#{item.Number} - Included in output. Applicable label: '{labels[0]}'.");
+                if (verbose) action.WriteInfo($"{itemQueryName} {org}/{repo}#{item.Number} - Included in output. Applicable label: '{labels[0]}'.");
 
                 yield return (item, labels[0]);
 
@@ -189,10 +193,19 @@ public class GitHubApi
 
             finished = (!hasNextPage || pageNumber >= pageLimit || (itemLimit.HasValue && includedCount >= itemLimit));
 
-            Console.WriteLine(
-                $"Included: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")}) | " +
+            action.WriteInfo(
+                $"Included for Model: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")}) | " +
                 $"Downloaded: {loadedCount} (total: {totalCount}) | " +
                 $"Pages: {pageNumber} (limit: {pageLimit})");
+
+            if (finished)
+            {
+                action.Summary.AddList([
+                    $"**Included for Model**: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")})",
+                    $"**Downloaded**: {loadedCount} (total: {totalCount})",
+                    $"**Pages**: {pageNumber} (limit: {pageLimit})"
+                ]);
+            }
         }
         while (!finished);
     }
@@ -252,13 +265,13 @@ public class GitHubApi
         return response.Data.Repository.Result;
     }
 
-    public static async Task<Issue?> GetIssue(string githubToken, string org, string repo, ulong number, int[] retries, bool verbose) =>
-        await GetItem<Issue>(githubToken, org, repo, number, retries, verbose, "issue");
+    public static async Task<Issue?> GetIssue(string githubToken, string org, string repo, ulong number, int[] retries, ICoreService action, bool verbose) =>
+        await GetItem<Issue>(githubToken, org, repo, number, retries, verbose, "issue", action);
 
-    public static async Task<PullRequest?> GetPullRequest(string githubToken, string org, string repo, ulong number, int[] retries, bool verbose) =>
-        await GetItem<PullRequest>(githubToken, org, repo, number, retries, verbose, "pullRequest");
+    public static async Task<PullRequest?> GetPullRequest(string githubToken, string org, string repo, ulong number, int[] retries, ICoreService action, bool verbose) =>
+        await GetItem<PullRequest>(githubToken, org, repo, number, retries, verbose, "pullRequest", action);
 
-    private static async Task<T?> GetItem<T>(string githubToken, string org, string repo, ulong number, int[] retries, bool verbose, string itemQueryName) where T : Issue
+    private static async Task<T?> GetItem<T>(string githubToken, string org, string repo, ulong number, int[] retries, bool verbose, string itemQueryName, ICoreService action) where T : Issue
     {
         GraphQLHttpClient client = GetGraphQLClient(githubToken);
         string files = typeof(T) == typeof(PullRequest) ? "files (first: 100) { nodes { path } }" : "";
@@ -308,7 +321,7 @@ public class GitHubApi
                     // These errors occur when an issue/pull does not exist or when the API rate limit has been exceeded
                     if (response.Errors.Any(e => e.Message.StartsWith("API rate limit exceeded")))
                     {
-                        Console.WriteLine($"""
+                        action.WriteNotice($"""
                             [{itemQueryName} #{number}] Failed to retrieve data.
                                 Rate limit has been reached.
                                 {(retry < retries.Length ? $"Will proceed with retry {retry + 1} of {retries.Length} after {retries[retry]} seconds..." : $"Retry limit of {retries.Length} reached.")}
@@ -317,10 +330,9 @@ public class GitHubApi
                     else
                     {
                         // Could not detect this as a rate limit issue. Do not retry.
-
                         string errors = string.Join("\n\n", response.Errors.Select((e, i) => $"{i + 1}. {e.Message}").ToArray());
 
-                        Console.WriteLine($"""
+                        action.WriteNotice($"""
                             [{itemQueryName} #{number}] Failed to retrieve data.
                                 GraphQL request returned errors:
 
@@ -334,7 +346,7 @@ public class GitHubApi
                 {
                     // Do not retry as these errors are not recoverable
                     // This is usually a bug during development when the query/response model is incorrect
-                    Console.WriteLine($"""
+                    action.WriteNotice($"""
                         [{itemQueryName} #{number}] Failed to retrieve data.
                             GraphQL response did not include the repository result data.
                         """);
@@ -350,7 +362,7 @@ public class GitHubApi
             )
             {
                 // Retry on exceptions as they can be temporary network issues
-                Console.WriteLine($"""
+                action.WriteInfo($"""
                     [{itemQueryName} #{number}] Failed to retrieve data.
                         Exception caught during query.
 
@@ -366,7 +378,7 @@ public class GitHubApi
         return null;
     }
 
-    public static async Task<string?> AddLabel(string githubToken, string org, string repo, string type, ulong number, string label, int[] retries)
+    public static async Task<string?> AddLabel(string githubToken, string org, string repo, string type, ulong number, string label, int[] retries, ICoreService action)
     {
         var client = GetRestClient(githubToken);
         byte retry = 0;
@@ -383,7 +395,7 @@ public class GitHubApi
                 return null;
             }
 
-            Console.WriteLine($"""
+            action.WriteNotice($"""
                 [{type} #{number}] Failed to add label '{label}'. {response.ReasonPhrase} ({response.StatusCode})
                     {(retry < retries.Length ? $"Will proceed with retry {retry + 1} of {retries.Length} after {retries[retry]} seconds..." : $"Retry limit of {retries.Length} reached.")}
                 """);
@@ -394,7 +406,7 @@ public class GitHubApi
         return $"Failed to add label '{label}' after {retries.Length} retries.";
     }
 
-    public static async Task<string?> RemoveLabel(string githubToken, string org, string repo, string type, ulong number, string label, int[] retries)
+    public static async Task<string?> RemoveLabel(string githubToken, string org, string repo, string type, ulong number, string label, int[] retries, ICoreService action)
     {
         var client = GetRestClient(githubToken);
         byte retry = 0;
@@ -410,7 +422,7 @@ public class GitHubApi
                 return null;
             }
 
-            Console.WriteLine($"""
+            action.WriteNotice($"""
                 [{type} #{number}] Failed to remove label '{label}'. {response.ReasonPhrase} ({response.StatusCode})
                     {(retry < retries.Length ? $"Will proceed with retry {retry + 1} of {retries.Length} after {retries[retry]} seconds..." : $"Retry limit of {retries.Length} reached.")}
                 """);

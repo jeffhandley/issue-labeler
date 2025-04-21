@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Actions.Core.Services;
 
 public struct Args
 {
@@ -19,11 +20,11 @@ public struct Args
     public Predicate<string> LabelPredicate { get; set; }
     public bool Verbose { get; set; }
 
-    static void ShowUsage(string? message = null)
+    static void ShowUsage(string? message, ICoreService action)
     {
         string executableName = Process.GetCurrentProcess().ProcessName;
 
-        Console.WriteLine($$"""
+        action.WriteNotice($$"""
             ERROR: Invalid or missing arguments.{{(message is null ? "" : " " + message)}}
 
             Usage:
@@ -55,13 +56,13 @@ public struct Args
         Environment.Exit(1);
     }
 
-    public static Args? Parse(string[] args)
+    public static Args? Parse(string[] args, ICoreService action)
     {
         string? token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
 
         if (string.IsNullOrEmpty(token))
         {
-            ShowUsage("Environment variable GITHUB_TOKEN is empty.");
+            ShowUsage("Environment variable GITHUB_TOKEN is empty.", action);
             return null;
         }
 
@@ -79,7 +80,7 @@ public struct Args
             switch (argument)
             {
                 case "--repo":
-                    if (!ArgUtils.TryDequeueRepoList(arguments, ShowUsage, "--repo", out string? org, out List<string>? repos))
+                    if (!ArgUtils.TryDequeueRepoList(arguments, m => ShowUsage(m, action), "--repo", out string? org, out List<string>? repos))
                     {
                         return null;
                     }
@@ -96,7 +97,7 @@ public struct Args
                     break;
 
                 case "--issues-limit":
-                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--issues-limit", out int? IssuesLimit))
+                    if (!ArgUtils.TryDequeueInt(arguments, m => ShowUsage(m, action), "--issues-limit", out int? IssuesLimit))
                     {
                         return null;
                     }
@@ -112,7 +113,7 @@ public struct Args
                     break;
 
                 case "--pulls-limit":
-                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--pulls-limit", out int? PullsLimit))
+                    if (!ArgUtils.TryDequeueInt(arguments, m => ShowUsage(m, action), "--pulls-limit", out int? PullsLimit))
                     {
                         return null;
                     }
@@ -120,7 +121,7 @@ public struct Args
                     break;
 
                 case "--page-size":
-                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--page-size", out int? pageSize))
+                    if (!ArgUtils.TryDequeueInt(arguments, m => ShowUsage(m, action), "--page-size", out int? pageSize))
                     {
                         return null;
                     }
@@ -128,7 +129,7 @@ public struct Args
                     break;
 
                 case "--page-limit":
-                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--page-limit", out int? pageLimit))
+                    if (!ArgUtils.TryDequeueInt(arguments, m => ShowUsage(m, action), "--page-limit", out int? pageLimit))
                     {
                         return null;
                     }
@@ -144,7 +145,7 @@ public struct Args
                     break;
 
                 case "--retries":
-                    if (!ArgUtils.TryDequeueIntArray(arguments, ShowUsage, "--retries", out int[]? retries))
+                    if (!ArgUtils.TryDequeueIntArray(arguments, m => ShowUsage(m, action), "--retries", out int[]? retries))
                     {
                         return null;
                     }
@@ -152,7 +153,7 @@ public struct Args
                     break;
 
                 case "--label-prefix":
-                    if (!ArgUtils.TryDequeueLabelPrefix(arguments, ShowUsage, "--label-prefix", out Func<string, bool>? labelPredicate))
+                    if (!ArgUtils.TryDequeueLabelPrefix(arguments, m => ShowUsage(m, action), "--label-prefix", out Func<string, bool>? labelPredicate))
                     {
                         return null;
                     }
@@ -163,7 +164,7 @@ public struct Args
                     argsData.Verbose = true;
                     break;
                 default:
-                    ShowUsage($"Unrecognized argument: {argument}");
+                    ShowUsage($"Unrecognized argument: {argument}", action);
                     return null;
             }
         }
@@ -171,7 +172,7 @@ public struct Args
         if (argsData.Org is null || argsData.Repos is null || argsData.LabelPredicate is null ||
             (argsData.IssuesDataPath is null && argsData.PullsDataPath is null))
         {
-            ShowUsage();
+            ShowUsage(null, action);
             return null;
         }
 

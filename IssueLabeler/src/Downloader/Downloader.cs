@@ -2,9 +2,21 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using static DataFileUtils;
+using Microsoft.Extensions.DependencyInjection;
+using Actions.Core;
+using Actions.Core.Extensions;
+using Actions.Core.Markdown;
+using Actions.Core.Services;
+using Actions.Core.Summaries;
 using GitHubClient;
 
-if (Args.Parse(args) is not Args argsData)
+using var provider = new ServiceCollection()
+    .AddGitHubActionsCore()
+    .BuildServiceProvider();
+
+var action = provider.GetRequiredService<ICoreService>();
+
+if (Args.Parse(args, action) is not Args argsData)
 {
     return;
 }
@@ -27,7 +39,7 @@ await Task.WhenAll(tasks);
 
 async Task DownloadIssues(string outputPath)
 {
-    Console.WriteLine($"Issues Data Path: {outputPath}");
+    action.WriteInfo($"Issues Data Path: {outputPath}");
 
     byte perFlushCount = 0;
 
@@ -38,7 +50,7 @@ async Task DownloadIssues(string outputPath)
     {
         await foreach (var result in GitHubApi.DownloadIssues(argsData.GithubToken, argsData.Org, repo, argsData.LabelPredicate,
                                                               argsData.IssuesLimit, argsData.PageSize ?? 100, argsData.PageLimit ?? 1000,
-                                                              argsData.Retries, argsData.ExcludedAuthors ?? [], argsData.Verbose))
+                                                              argsData.Retries, argsData.ExcludedAuthors ?? [], action, argsData.Verbose))
         {
             writer.WriteLine(FormatIssueRecord(result.Label, result.Issue.Title, result.Issue.Body));
 
@@ -55,7 +67,7 @@ async Task DownloadIssues(string outputPath)
 
 async Task DownloadPullRequests(string outputPath)
 {
-    Console.WriteLine($"Pulls Data Path: {outputPath}");
+    action.WriteInfo($"Pulls Data Path: {outputPath}");
 
     byte perFlushCount = 0;
 
@@ -66,7 +78,7 @@ async Task DownloadPullRequests(string outputPath)
     {
         await foreach (var result in GitHubApi.DownloadPullRequests(argsData.GithubToken, argsData.Org, repo, argsData.LabelPredicate,
                                                                     argsData.PullsLimit, argsData.PageSize ?? 25, argsData.PageLimit ?? 4000,
-                                                                    argsData.Retries, argsData.ExcludedAuthors ?? [], argsData.Verbose))
+                                                                    argsData.Retries, argsData.ExcludedAuthors ?? [], action, argsData.Verbose))
         {
             writer.WriteLine(FormatPullRequestRecord(result.Label, result.PullRequest.Title, result.PullRequest.Body, result.PullRequest.FileNames, result.PullRequest.FolderNames));
 

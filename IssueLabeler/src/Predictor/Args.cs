@@ -21,11 +21,9 @@ public struct Args
     public string[]? ExcludedAuthors { get; set; }
     public bool Test { get; set; }
 
-    static void ShowUsage(string? message = null)
+    static void ShowUsage(string? message, ICoreService action)
     {
-        string executableName = Process.GetCurrentProcess().ProcessName;
-
-        Console.WriteLine($$"""
+        action.WriteNotice($$"""
             ERROR: Invalid or missing inputs.{{(message is null ? "" : " " + message)}}
 
             Required environment variables:
@@ -71,25 +69,25 @@ public struct Args
 
     public static Args? Parse(string[] args, ICoreService action)
     {
-        ArgUtils.TryGetRequiredString("GITHUB_TOKEN", Environment.GetEnvironmentVariable, out var token, ShowUsage);
-        ArgUtils.TryParseRepo("repo", i => action.GetInput(i), out var org, out var repo, ShowUsage);
-        ArgUtils.TryParseLabelPrefix("label_prefix", i => action.GetInput(i), out var labelPredicate, ShowUsage);
+        ArgUtils.TryGetRequiredString("GITHUB_TOKEN", Environment.GetEnvironmentVariable, out var token, m => ShowUsage(m, action));
+        ArgUtils.TryParseRepo("repo", i => action.GetInput(i), out var org, out var repo, m => ShowUsage(m, action));
+        ArgUtils.TryParseLabelPrefix("label_prefix", i => action.GetInput(i), out var labelPredicate, m => ShowUsage(m, action));
         ArgUtils.TryParsePath("issues_model", i => action.GetInput(i), out var issuesModelPath);
-        ArgUtils.TryParseNumberRanges("issues", i => action.GetInput(i), out var issues, ShowUsage);
+        ArgUtils.TryParseNumberRanges("issues", i => action.GetInput(i), out var issues, m => ShowUsage(m, action));
         ArgUtils.TryParsePath("pulls_model", i => action.GetInput(i), out var pullsModelPath);
-        ArgUtils.TryParseNumberRanges("pulls", i => action.GetInput(i), out var pulls, ShowUsage);
+        ArgUtils.TryParseNumberRanges("pulls", i => action.GetInput(i), out var pulls, m => ShowUsage(m, action));
         ArgUtils.TryParseStringArray("excluded_authors", i => action.GetInput(i), out var excludedAuthors);
-        ArgUtils.TryParseFloat("threshold", i => action.GetInput(i), out var threshold, ShowUsage);
-        ArgUtils.TryParseIntArray("retries", i => action.GetInput(i), out var retries, ShowUsage);
+        ArgUtils.TryParseFloat("threshold", i => action.GetInput(i), out var threshold, m => ShowUsage(m, action));
+        ArgUtils.TryParseIntArray("retries", i => action.GetInput(i), out var retries, m => ShowUsage(m, action));
 
         var defaultLabel = action.GetInput("default_label");
-        ArgUtils.GetFlag("test", i => action.GetInput(i), out var test, ShowUsage);
-        ArgUtils.GetFlag("verbose", i => action.GetInput(i), out var verbose, ShowUsage);
+        ArgUtils.GetFlag("test", i => action.GetInput(i), out var test, m => ShowUsage(m, action));
+        ArgUtils.GetFlag("verbose", i => action.GetInput(i), out var verbose, m => ShowUsage(m, action));
 
         if (token is null || org is null || repo is null || threshold is null || labelPredicate is null ||
             (issues is null && pulls is null))
         {
-            ShowUsage();
+            ShowUsage(null, action);
             return null;
         }
 

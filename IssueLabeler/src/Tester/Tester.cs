@@ -16,7 +16,7 @@ using var provider = new ServiceCollection()
     .BuildServiceProvider();
 
 var action = provider.GetRequiredService<ICoreService>();
-var config = Args.Parse(args);
+var config = Args.Parse(args, action);
 if (config is not Args argsData) return;
 
 List<Task> tasks = [];
@@ -60,7 +60,7 @@ async IAsyncEnumerable<T> ReadData<T>(string dataPath, Func<ulong, string[], T> 
 
 async IAsyncEnumerable<Issue> DownloadIssues(string githubToken, string org, string repo)
 {
-    await foreach (var result in GitHubApi.DownloadIssues(githubToken, org, repo, argsData.LabelPredicate, argsData.IssuesLimit, 100, 1000, [30, 30, 30], argsData.ExcludedAuthors ?? []))
+    await foreach (var result in GitHubApi.DownloadIssues(githubToken, org, repo, argsData.LabelPredicate, argsData.IssuesLimit, 100, 1000, [30, 30, 30], argsData.ExcludedAuthors ?? [], action))
     {
         yield return new(result.Issue, argsData.LabelPredicate);
     }
@@ -96,7 +96,7 @@ async Task TestIssues()
 
 async IAsyncEnumerable<PullRequest> DownloadPullRequests(string githubToken, string org, string repo)
 {
-    await foreach (var result in GitHubApi.DownloadPullRequests(githubToken, org, repo, argsData.LabelPredicate, argsData.PullsLimit, 25, 4000, [30, 30, 30], argsData.ExcludedAuthors ?? []))
+    await foreach (var result in GitHubApi.DownloadPullRequests(githubToken, org, repo, argsData.LabelPredicate, argsData.PullsLimit, 25, 4000, [30, 30, 30], argsData.ExcludedAuthors ?? [], action))
     {
         yield return new(result.PullRequest, argsData.LabelPredicate);
     }

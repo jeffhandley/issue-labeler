@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Actions.Core.Services;
 
 public struct Args
 {
@@ -10,14 +11,14 @@ public struct Args
     public string? PullsDataPath { get; set; }
     public string? PullsModelPath { get; set; }
 
-    static void ShowUsage(string? message = null)
+    static void ShowUsage(string? message, ICoreService action)
     {
         // If you provide a path for issue data, you must also provide a path for the issue model, and vice versa.
         // If you provide a path for pull data, you must also provide a path for the pull model, and vice versa.
         // At least one pair of paths(either issue or pull) must be provided.
         string executableName = Process.GetCurrentProcess().ProcessName;
 
-        Console.WriteLine($$"""
+        action.WriteNotice($$"""
             ERROR: Invalid or missing arguments.{{(message is null ? "" : " " + message)}}
 
             Usage:
@@ -35,7 +36,7 @@ public struct Args
         Environment.Exit(1);
     }
 
-    public static Args? Parse(string[] args)
+    public static Args? Parse(string[] args, ICoreService action)
     {
         Args argsData = new();
 
@@ -79,7 +80,7 @@ public struct Args
                     break;
 
                 default:
-                    ShowUsage($"Unrecognized argument: {argument}");
+                    ShowUsage($"Unrecognized argument: {argument}", action);
                     return null;
             }
         }
@@ -88,7 +89,7 @@ public struct Args
             (argsData.PullsDataPath is null != argsData.PullsModelPath is null) ||
             (argsData.IssuesModelPath is null && argsData.PullsModelPath is null))
         {
-            ShowUsage();
+            ShowUsage(null, action);
             return null;
         }
 

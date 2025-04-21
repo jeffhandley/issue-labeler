@@ -30,7 +30,7 @@ if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
 
     foreach (ulong issueNumber in argsData.Issues)
     {
-        var result = await GitHubApi.GetIssue(argsData.GithubToken, argsData.Org, argsData.Repo, issueNumber, argsData.Retries, argsData.Verbose);
+        var result = await GitHubApi.GetIssue(argsData.GithubToken, argsData.Org, argsData.Repo, issueNumber, argsData.Retries, action, argsData.Verbose);
 
         if (result is null)
         {
@@ -69,7 +69,7 @@ if (argsData.PullsModelPath is not null && argsData.Pulls is not null)
 
     foreach (ulong pullNumber in argsData.Pulls)
     {
-        var result = await GitHubApi.GetPullRequest(argsData.GithubToken, argsData.Org, argsData.Repo, pullNumber, argsData.Retries, argsData.Verbose);
+        var result = await GitHubApi.GetPullRequest(argsData.GithubToken, argsData.Org, argsData.Repo, pullNumber, argsData.Retries, action, argsData.Verbose);
 
         if (result is null)
         {
@@ -146,7 +146,7 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
         {
             if (!test)
             {
-                error = await GitHubApi.RemoveLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, defaultLabel, argsData.Retries);
+                error = await GitHubApi.RemoveLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, defaultLabel, argsData.Retries, action);
             }
 
             output.Add(error ?? $"Removed default label '{defaultLabel}'.");
@@ -190,7 +190,7 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
     {
         if (!test)
         {
-            error = await GitHubApi.AddLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, bestScore.Label, retries);
+            error = await GitHubApi.AddLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, bestScore.Label, retries, action);
         }
 
         output.Add(error ?? $"Added label '{bestScore.Label}'");
@@ -204,7 +204,7 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
         {
             if (!test)
             {
-                error = await GitHubApi.RemoveLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, defaultLabel, retries);
+                error = await GitHubApi.RemoveLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, defaultLabel, retries, action);
             }
 
             output.Add(error ?? $"Removed default label '{defaultLabel}'");
@@ -223,7 +223,7 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
         {
             if (!test)
             {
-                error = await GitHubApi.AddLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, defaultLabel, argsData.Retries);
+                error = await GitHubApi.AddLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, defaultLabel, argsData.Retries, action);
             }
 
             output.Add(error ?? $"Applied default label '{defaultLabel}'.");
