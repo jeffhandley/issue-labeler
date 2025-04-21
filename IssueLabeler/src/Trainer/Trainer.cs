@@ -108,12 +108,12 @@ static async Task CreateModel(string dataPath, string modelPath, ModelType type,
     var metrics = mlContext.MulticlassClassification.Evaluate(testModel, labelColumnName: "LabelKey");
 
     action.Summary.AddRawMarkdown($"""
-        * **MacroAccuracy**: {metrics.MacroAccuracy:0.####} (a value between 0 and 1; the closer to 1, the better)
-        * **MicroAccuracy**: {metrics.MicroAccuracy:0.####} (a value between 0 and 1; the closer to 1, the better)
-        * **LogLoss**: {metrics.LogLoss:0.####} (the closer to 0, the better)
-        {(metrics.PerClassLogLoss.Count() > 0 ? $"    * **Class 1**: {metrics.PerClassLogLoss[0]:0.####}" : "")}
-        {(metrics.PerClassLogLoss.Count() > 1 ? $"    * **Class 2**: {metrics.PerClassLogLoss[1]:0.####}" : "")}
-        {(metrics.PerClassLogLoss.Count() > 2 ? $"    * **Class 3**: {metrics.PerClassLogLoss[2]:0.####}" : "")}
+        * MacroAccuracy: {metrics.MacroAccuracy:0.####} (a value between 0 and 1; the closer to 1, the better)
+        * MicroAccuracy: {metrics.MicroAccuracy:0.####} (a value between 0 and 1; the closer to 1, the better)
+        * LogLoss: {metrics.LogLoss:0.####} (the closer to 0, the better)
+        {(metrics.PerClassLogLoss.Count() > 0 ? $"    * Class 1: {metrics.PerClassLogLoss[0]:0.####}" : "")}
+        {(metrics.PerClassLogLoss.Count() > 1 ? $"    * Class 2: {metrics.PerClassLogLoss[1]:0.####}" : "")}
+        {(metrics.PerClassLogLoss.Count() > 2 ? $"    * Class 3: {metrics.PerClassLogLoss[2]:0.####}" : "")}
         """);
 
     await action.Summary.WriteAsync();

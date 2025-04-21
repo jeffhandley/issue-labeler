@@ -11,6 +11,9 @@ inputs:
     required: true
     default: "ACTIVE"
 
+  retention:
+    description: "The action has been invoked to ensure cache retention"
+
 branding:
   color: "purple"
   icon: "arrow-down"
@@ -34,3 +37,13 @@ runs:
         path: labeler-cache/${{ inputs.type }}-model.zip
         key: issue-labeler/model/${{ inputs.type }}/${{ inputs.cache_key || 'ACTIVE' }}
         fail-on-cache-miss: true
+
+    - name: "Show summary for retention"
+      if: ${{ inputs.retention }}
+      shell: bash
+      run: |
+        echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
+        echo "> The ${{ inputs.type }} model was successfully restored from cache." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "> [!TIP]" >> $GITHUB_STEP_SUMMARY
+        echo "> Refer to the [GitHub documentation](https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows#usage-limits-and-eviction-policy) for more information about cache retention policies." >> $GITHUB_STEP_SUMMARY

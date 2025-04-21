@@ -201,9 +201,9 @@ public class GitHubApi
             if (finished)
             {
                 action.Summary.AddMarkdownList([
-                    $"**Included for Model**: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")})",
-                    $"**Downloaded**: {loadedCount} (total: {totalCount})",
-                    $"**Pages**: {pageNumber} (limit: {pageLimit})"
+                    $"Included for Model: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")})",
+                    $"Downloaded: {loadedCount} (total: {totalCount})",
+                    $"Pages: {pageNumber} (limit: {pageLimit})"
                 ]);
             }
         }
