@@ -5,8 +5,8 @@ inputs:
   model:
     description: "The model to promote. Must be 'issues' or 'pulls'."
     required: true
-  source_key:
-    description: "The suffix for the source cache entry to promote."
+  staged_key:
+    description: "The suffix for the staged cache entry to promote."
     required: true
   backup_key:
     description: "The suffix for the backup cache entry. This cache entry must not exist if there is an active entry to back up."
@@ -26,8 +26,8 @@ runs:
           exit 1
         fi
 
-        if [[ -z "${{ inputs.source_key }}" || ! "${{ inputs.source_key }}" =~ ^[a-zA-Z0-9/_\-]+$ ]]; then
-          echo "Invalid source_key: ${{ inputs.source_key }}. Must be non-empty and contain only alphanumeric characters, hyphens, underscores, or slashes."
+        if [[ -z "${{ inputs.staged_key }}" || ! "${{ inputs.staged_key }}" =~ ^[a-zA-Z0-9/_\-]+$ ]]; then
+          echo "Invalid staged_key: ${{ inputs.staged_key }}. Must be non-empty and contain only alphanumeric characters, hyphens, underscores, or slashes."
           exit 1
         fi
 
@@ -36,8 +36,8 @@ runs:
           exit 1
         fi
 
-        if [[ "${{ inputs.source_key }}" == "ACTIVE" || "${{ inputs.backup_key }}" == "ACTIVE" || "${{ inputs.source_key }}" == "${{ inputs.backup_key }}" ]]; then
-          echo "The source and backup keys must be different and cannot be 'ACTIVE'."
+        if [[ "${{ inputs.staged_key }}" == "ACTIVE" || "${{ inputs.backup_key }}" == "ACTIVE" || "${{ inputs.staged_key }}" == "${{ inputs.backup_key }}" ]]; then
+          echo "The staged and backup keys must be different and cannot be 'ACTIVE'."
           exit 1
         fi
 
@@ -45,21 +45,21 @@ runs:
       shell: bash
       run: |
         echo "CACHE_PATH=labeler-cache/${{ inputs.model }}-model.zip" >> $GITHUB_ENV
-        echo "SOURCE_KEY=issue-labeler/${{ inputs.model }}/model/${{ inputs.source_key }}" >> $GITHUB_ENV
+        echo "staged_KEY=issue-labeler/${{ inputs.model }}/model/${{ inputs.staged_key }}" >> $GITHUB_ENV
         echo "ACTIVE_KEY=issue-labeler/${{ inputs.model }}/model/ACTIVE" >> $GITHUB_ENV
         echo "BACKUP_KEY=issue-labeler/${{ inputs.model }}/model/${{ inputs.backup_key }}" >> $GITHUB_ENV
 
-    - name: "Check for existing source cache entry"
-      id: check-source
+    - name: "Check for existing staged cache entry"
+      id: check-staged
       uses: actions/cache/restore@v4
       with:
         path: ${{ env.CACHE_PATH }}
-        key: ${{ env.SOURCE_KEY }}
+        key: ${{ env.staged_KEY }}
         lookup-only: true
         fail-on-cache-miss: true
 
     - name: "Check for existing backup cache entry"
-      if: ${{ steps.check-source.outputs.cache-hit == 'true' }}
+      if: ${{ steps.check-staged.outputs.cache-hit == 'true' }}
       id: check-backup
       uses: actions/cache/restore@v4
       with:
@@ -69,7 +69,7 @@ runs:
         fail-on-cache-miss: false
 
     - name: "Restore existing active cache entry"
-      if: ${{ steps.check-source.outputs.cache-hit == 'true' }}
+      if: ${{ steps.check-staged.outputs.cache-hit == 'true' }}
       id: check-active
       uses: actions/cache/restore@v4
       with:
@@ -99,11 +99,11 @@ runs:
       run: |
         rm ${{ env.CACHE_PATH }}
 
-    - name: "Restore the source cache entry to promote"
+    - name: "Restore the staged cache entry to promote"
       uses: actions/cache/restore@v4
       with:
         path: ${{ env.CACHE_PATH }}
-        key: ${{ env.SOURCE_KEY }}
+        key: ${{ env.staged_KEY }}
         fail-on-cache-miss: true
 
     - name: "Delete existing active cache entry"
@@ -115,7 +115,7 @@ runs:
           -H "X-GitHub-Api-Version: 2022-11-28" \
           /repos/${{ github.repository }}/actions/caches?key=${{ env.ACTIVE_KEY }}
 
-    - name: "Save the source cache entry as the active cache entry"
+    - name: "Save the staged cache entry as the active cache entry"
       uses: actions/cache/save@v4
       with:
         path: ${{ env.CACHE_PATH }}

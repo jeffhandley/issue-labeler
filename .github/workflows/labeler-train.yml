@@ -36,10 +36,10 @@ on:
         description: "Max number of items to include in the model (newest items are used)"
         type: number
       cache_key_suffix:
-        description: "The cache key suffix to use for staging data/models (use 'ACTIVE' to bypass staging)"
+        description: "The cache key suffix to use for staged data/models (use 'ACTIVE' to bypass staging)"
         type: string
         required: true
-        default: "staging"
+        default: "staged"
 
 env:
   CACHE_KEY: ${{ inputs.cache_key_suffix }}

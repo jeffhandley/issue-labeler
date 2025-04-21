@@ -41,9 +41,9 @@ inputs:
     required: false
 
   cache_key:
-    description: "The cache key suffix to use for saving data. Default: 'staging'."
+    description: "The cache key suffix to use for saving data. Default: 'staged'."
     required: false
-    default: "staging"
+    default: "staged"
   backup_cache_key:
     description: "The cache key suffix to use for backing existing data. Default: 'backup'."
     required: false
@@ -57,12 +57,12 @@ runs:
       run: |
         if [[ "${{ inputs.issues }}" == 'true' ]]; then
           echo "ISSUE_DATA_PATH=labeler-cache/issue-data.tsv" >> $GITHUB_ENV
-          echo "ISSUE_CACHE_KEY=${{ format('issue-labeler/issues/data/{0}', inputs.cache_key || 'staging') }}" >> $GITHUB_ENV
+          echo "ISSUE_CACHE_KEY=${{ format('issue-labeler/issues/data/{0}', inputs.cache_key || 'staged') }}" >> $GITHUB_ENV
           echo "ISSUE_BACKUP_CACHE_KEY=${{ format('issue-labeler/issues/data/{0}/{1}', inputs.cache_key || 'backup', inputs.backup_cache_key) }}" >> $GITHUB_ENV
         fi
         if [[ "${{ inputs.pulls }}" == 'true' ]]; then
           echo "PULL_DATA_PATH=labeler-cache/pull-data.tsv" >> $GITHUB_ENV
-          echo "PULL_CACHE_KEY=${{ format('issue-labeler/pulls/data/{0}', inputs.cache_key || 'staging') }}" >> $GITHUB_ENV
+          echo "PULL_CACHE_KEY=${{ format('issue-labeler/pulls/data/{0}', inputs.cache_key || 'staged') }}" >> $GITHUB_ENV
           echo "PULL_BACKUP_CACHE_KEY=${{ format('issue-labeler/pulls/data/{0}/{1}', inputs.cache_key || 'backup', inputs.backup_cache_key) }}" >> $GITHUB_ENV
         fi
 

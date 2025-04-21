@@ -2,7 +2,7 @@ name: "Labeler: Promotion"
 
 on:
   # Dispatched via the Actions UI, promotes the staged models from
-  # a staging slot into the prediction environment
+  # a staged slot into the prediction environment
   workflow_dispatch:
     inputs:
       issues:
@@ -13,11 +13,11 @@ on:
         description: "Pulls: Promote Model"
         type: boolean
         required: true
-      source_key:
-        description: "The cache key suffix to promote to ACTIVE"
+      staged_key:
+        description: "The cache key suffix to use for promoting a staged model to ACTIVE"
         type: string
         required: true
-        default: "staging"
+        default: "staged"
       backup_key:
         description: "The cache key suffix to use for backing up the currently active model"
         type: string
@@ -35,7 +35,7 @@ jobs:
         uses: jeffhandley/issue-labeler/promote@main
         with:
           model: "issues"
-          source_key: ${{ inputs.source_key }}
+          staged_key: ${{ inputs.staged_key }}
           backup_key: ${{ inputs.backup_key }}
 
   pulls:
@@ -46,5 +46,5 @@ jobs:
         uses: jeffhandley/issue-labeler/promote@main
         with:
           model: "pulls"
-          source_key: ${{ inputs.source_key }}
+          staged_key: ${{ inputs.staged_key }}
           backup_key: ${{ inputs.backup_key }}
