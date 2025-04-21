@@ -67,7 +67,6 @@ jobs:
         uses: jeffhandley/issue-labeler/predict@main
         with:
           issue_numbers: ${{ inputs.issue_numbers || github.event.issue.number }}
-          issue_model:   ${{ env.ISSUE_MODEL_PATH }}
           label_prefix:  ${{ env.LABEL_PREFIX }}
           threshold:     ${{ env.THRESHOLD }}
           default_label: ${{ env.DEFAULT_LABEL }}
@@ -79,7 +78,6 @@ jobs:
         uses: jeffhandley/issue-labeler/predict@main
         with:
           pull_numbers:  ${{ inputs.pull_numbers || github.event.number }}
-          pull_model:    ${{ env.PULL_MODEL_PATH }}
           label_prefix:  ${{ env.LABEL_PREFIX }}
           threshold:     ${{ env.THRESHOLD }}
           default_label: ${{ env.DEFAULT_LABEL }}
