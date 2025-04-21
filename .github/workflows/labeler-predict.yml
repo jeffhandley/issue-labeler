@@ -49,13 +49,13 @@ jobs:
       issues: write
     steps:
       - name: "Restore issues model from cache"
-        if: ${{ inputs.issues || github.event == 'issues' }}
+        if: ${{ inputs.issues || github.event_name == 'issues' }}
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: issues
 
       - name: "Predict issue labels"
-        if: ${{ inputs.issues || github.event == 'issues' }}
+        if: ${{ inputs.issues || github.event_name == 'issues' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           issues:        ${{ inputs.issues || github.event.issue.number }}
@@ -73,13 +73,13 @@ jobs:
       pull-requests: write
     steps:
       - name: "Restore pulls model from cache"
-        if: ${{ inputs.pulls || github.event == 'pull_request_target' }}
+        if: ${{ inputs.pulls || github.event_name == 'pull_request_target' }}
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: pulls
 
       - name: "Predict pull labels"
-        if: ${{ inputs.pulls || github.event == 'pull_request_target' }}
+        if: ${{ inputs.pulls || github.event_name == 'pull_request_target' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           pulls:         ${{ inputs.pulls || github.event.number }}

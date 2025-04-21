@@ -97,21 +97,27 @@ static void CreateModel(string dataPath, string modelPath, ModelType type, ICore
     action.WriteInfo("Evaluating against the test set...");
     var metrics = mlContext.MulticlassClassification.Evaluate(testModel, labelColumnName: "LabelKey");
 
-    action.Summary.AddRaw($"************************************************************");
-    action.Summary.AddRaw($"MacroAccuracy = {metrics.MacroAccuracy:0.####}, a value between 0 and 1, the closer to 1, the better");
-    action.Summary.AddRaw($"MicroAccuracy = {metrics.MicroAccuracy:0.####}, a value between 0 and 1, the closer to 1, the better");
-    action.Summary.AddRaw($"LogLoss = {metrics.LogLoss:0.####}, the closer to 0, the better");
+    void TeeOutput(string message)
+    {
+        action.WriteInfo(message);
+        action.Summary.AddRaw(message);
+    }
+
+    TeeOutput($"************************************************************");
+    TeeOutput($"MacroAccuracy = {metrics.MacroAccuracy:0.####}, a value between 0 and 1, the closer to 1, the better");
+    TeeOutput($"MicroAccuracy = {metrics.MicroAccuracy:0.####}, a value between 0 and 1, the closer to 1, the better");
+    TeeOutput($"LogLoss = {metrics.LogLoss:0.####}, the closer to 0, the better");
 
     if (metrics.PerClassLogLoss.Count() > 0)
-        action.Summary.AddRaw($"LogLoss for class 1 = {metrics.PerClassLogLoss[0]:0.####}, the closer to 0, the better");
+        TeeOutput($"LogLoss for class 1 = {metrics.PerClassLogLoss[0]:0.####}, the closer to 0, the better");
 
     if (metrics.PerClassLogLoss.Count() > 1)
-        action.Summary.AddRaw($"LogLoss for class 2 = {metrics.PerClassLogLoss[1]:0.####}, the closer to 0, the better");
+        TeeOutput($"LogLoss for class 2 = {metrics.PerClassLogLoss[1]:0.####}, the closer to 0, the better");
 
     if (metrics.PerClassLogLoss.Count() > 2)
-        action.Summary.AddRaw($"LogLoss for class 3 = {metrics.PerClassLogLoss[2]:0.####}, the closer to 0, the better");
+        TeeOutput($"LogLoss for class 3 = {metrics.PerClassLogLoss[2]:0.####}, the closer to 0, the better");
 
-    action.Summary.AddRaw($"************************************************************");
+    TeeOutput($"************************************************************");
 
     action.WriteInfo($"Saving model to '{modelPath}'...");
     EnsureOutputDirectory(modelPath);
