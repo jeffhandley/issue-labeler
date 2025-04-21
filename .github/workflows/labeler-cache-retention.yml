@@ -10,40 +10,29 @@ on:
 
   workflow_dispatch:
     inputs:
-      skip_issue_model:
-        description: "Skip cache retention of the issue model"
-        type: boolean
-      skip_pull_model:
-        description: "Skip cache retention of the pull model"
-        type: boolean
-
-env:
-  ISSUE_MODEL_PATH: labeler-cache/issues-model.zip
-  PULL_MODEL_PATH:  labeler-cache/pulls-model.zip
-  ISSUE_MODEL_CACHE_KEY: issue-labeler/model/issues/ACTIVE
-  PULL_MODEL_CACHE_KEY:  issue-labeler/model/pulls/ACTIVE
+      cache_key:
+        description: "The cache key suffix to use for loading the model"
+        type: string
+        required: true
+        default: "ACTIVE"
 
 jobs:
-  issues-model:
+  issues:
     # Do not run the job on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == 'jeffhandley' && !inputs.skip_issue_model }}
+    if: ${{ github.repository_owner == 'jeffhandley' }}
     runs-on: ubuntu-latest
     steps:
-      - name: "Restore issue model from cache"
-        uses: actions/cache/restore@v4
+      - uses: jeffhandley/issue-labeler/restore@main
         with:
-          path: ${{ env.ISSUE_MODEL_PATH }}
-          key:  ${{ env.ISSUE_MODEL_CACHE_KEY }}
-          fail-on-cache-miss: true
+          model: issues
+          cache_key: ${{ inputs.cache_key || 'ACTIVE' }}
 
-  pulls-model:
+  pulls:
     # Do not run the job on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == 'jeffhandley' && !inputs.skip_pull_model }}
+    if: ${{ github.repository_owner == 'jeffhandley' }}
     runs-on: ubuntu-latest
     steps:
-      - name: "Restore pull model from cache"
-        uses: actions/cache/restore@v4
+      - uses: jeffhandley/issue-labeler/restore@main
         with:
-          path: ${{ env.PULL_MODEL_PATH }}
-          key:  ${{ env.PULL_MODEL_CACHE_KEY }}
-          fail-on-cache-miss: true
+          model: pulls
+          cache_key: ${{ inputs.cache_key || 'ACTIVE' }}

@@ -36,12 +36,8 @@ on:
         default: "ACTIVE"
 
 env:
-  ISSUE_MODEL_PATH: labeler-cache/issues-model.zip
-  ISSUE_MODEL_CACHE_KEY: issue-labeler/model/issues/${{ inputs.cache_key }}
-  PULL_MODEL_PATH: labeler-cache/pulls-model.zip
-  PULL_MODEL_CACHE_KEY: issue-labeler/model/pulls/${{ inputs.cache_key }}
-  THRESHOLD: 0.40
   LABEL_PREFIX: "area-"
+  THRESHOLD: 0.40
   DEFAULT_LABEL: "needs-area-label"
 
 jobs:
@@ -54,40 +50,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: "Restore issue model from cache"
+      - name: "Restore issues model from cache"
         if: ${{ inputs.issue_numbers || github.event == 'issues' }}
-        uses: actions/cache/restore@v4
+        uses: jeffhandley/issue-labeler/restore@main
         with:
-          path: ${{ env.ISSUE_MODEL_PATH }}
-          key:  ${{ env.ISSUE_MODEL_CACHE_KEY }}
-          fail-on-cache-miss: true
+          model: issues
+
+      - name: "Restore pulls model from cache"
+        if: ${{ inputs.pull_numbers || github.event == 'pull_request_target' }}
+        uses: jeffhandley/issue-labeler/restore@main
+        with:
+          model: pulls
 
       - name: "Predict issue labels"
         if: ${{ inputs.issue_numbers || github.event == 'issues' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
-          issue_model:   ${{ env.ISSUE_MODEL_PATH }}
           issue_numbers: ${{ inputs.issue_numbers || github.event.issue.number }}
+          issue_model:   ${{ env.ISSUE_MODEL_PATH }}
           label_prefix:  ${{ env.LABEL_PREFIX }}
           threshold:     ${{ env.THRESHOLD }}
           default_label: ${{ env.DEFAULT_LABEL }}
         env:
           GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Restore pull model from cache"
-        if: ${{ inputs.pull_numbers || github.event == 'pull_request_target' }}
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.PULL_MODEL_PATH }}
-          key:  ${{ env.PULL_MODEL_CACHE_KEY }}
-          fail-on-cache-miss: true
-
       - name: "Predict pull labels"
         if: ${{ inputs.pull_numbers || github.event == 'pull_request_target' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
-          pull_model:    ${{ env.PULL_MODEL_PATH }}
           pull_numbers:  ${{ inputs.pull_numbers || github.event.number }}
+          pull_model:    ${{ env.PULL_MODEL_PATH }}
           label_prefix:  ${{ env.LABEL_PREFIX }}
           threshold:     ${{ env.THRESHOLD }}
           default_label: ${{ env.DEFAULT_LABEL }}
