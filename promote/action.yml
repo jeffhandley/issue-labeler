@@ -60,7 +60,7 @@ runs:
 
     - name: "Check for existing staged cache entry"
       id: check-staged
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
         path: ${{ env.CACHE_PATH }}
         key: ${{ env.staged_KEY }}
@@ -70,7 +70,7 @@ runs:
     - name: "Check for existing backup cache entry"
       if: ${{ steps.check-staged.outputs.cache-hit == 'true' }}
       id: check-backup
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
         path: ${{ env.CACHE_PATH }}
         key: ${{ env.BACKUP_KEY }}
@@ -80,7 +80,7 @@ runs:
     - name: "Restore existing active cache entry"
       if: ${{ steps.check-staged.outputs.cache-hit == 'true' }}
       id: check-active
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
         path: ${{ env.CACHE_PATH }}
         key: ${{ env.ACTIVE_KEY }}
@@ -101,7 +101,7 @@ runs:
     - name: "Cache backup of current active cache entry"
       if: ${{ steps.check-active.outputs.cache-hit == 'true' }}
       id: backup-file
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
         path: ${{ env.CACHE_PATH }}
         key: ${{ env.BACKUP_KEY }}
@@ -113,7 +113,7 @@ runs:
         rm ${{ env.CACHE_PATH }}
 
     - name: "Restore the staged cache entry to promote"
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
         path: ${{ env.CACHE_PATH }}
         key: ${{ env.staged_KEY }}
@@ -131,7 +131,7 @@ runs:
         GH_TOKEN: ${{ github.token }}
 
     - name: "Save the staged cache entry as the active cache entry"
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
         path: ${{ env.CACHE_PATH }}
         key: ${{ env.ACTIVE_KEY }}
