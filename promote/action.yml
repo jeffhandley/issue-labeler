@@ -45,9 +45,9 @@ runs:
       shell: bash
       run: |
         echo "CACHE_PATH=labeler-cache/${{ inputs.model }}-model.zip" >> $GITHUB_ENV
-        echo "staged_KEY=issue-labeler/${{ inputs.model }}/model/${{ inputs.staged_key }}" >> $GITHUB_ENV
-        echo "ACTIVE_KEY=issue-labeler/${{ inputs.model }}/model/ACTIVE" >> $GITHUB_ENV
-        echo "BACKUP_KEY=issue-labeler/${{ inputs.model }}/model/${{ inputs.backup_key }}" >> $GITHUB_ENV
+        echo "staged_KEY=issue-labeler/model/${{ inputs.model }}/${{ inputs.staged_key }}" >> $GITHUB_ENV
+        echo "ACTIVE_KEY=issue-labeler/model/${{ inputs.model }}/ACTIVE" >> $GITHUB_ENV
+        echo "BACKUP_KEY=issue-labeler/model/${{ inputs.model }}/${{ inputs.backup_key }}" >> $GITHUB_ENV
 
     - name: "Check for existing staged cache entry"
       id: check-staged

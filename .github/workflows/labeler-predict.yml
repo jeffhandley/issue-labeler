@@ -37,9 +37,9 @@ on:
 
 env:
   ISSUE_MODEL_PATH: labeler-cache/issues-model.zip
-  ISSUE_MODEL_CACHE_KEY: issue-labeler/issues/model/${{ inputs.cache_key }}
+  ISSUE_MODEL_CACHE_KEY: issue-labeler/model/issues/${{ inputs.cache_key }}
   PULL_MODEL_PATH: labeler-cache/pulls-model.zip
-  PULL_MODEL_CACHE_KEY: issue-labeler/pulls/model/${{ inputs.cache_key }}
+  PULL_MODEL_CACHE_KEY: issue-labeler/model/pulls/${{ inputs.cache_key }}
   THRESHOLD: 0.40
   LABEL_PREFIX: "area-"
   DEFAULT_LABEL: "needs-area-label"

@@ -20,8 +20,8 @@ on:
 env:
   ISSUE_MODEL_PATH: labeler-cache/issues-model.zip
   PULL_MODEL_PATH:  labeler-cache/pulls-model.zip
-  ISSUE_MODEL_CACHE_KEY: issue-labeler/issues/model/ACTIVE
-  PULL_MODEL_CACHE_KEY:  issue-labeler/pulls/model/ACTIVE
+  ISSUE_MODEL_CACHE_KEY: issue-labeler/model/issues/ACTIVE
+  PULL_MODEL_CACHE_KEY:  issue-labeler/model/pulls/ACTIVE
 
 jobs:
   issues-model:

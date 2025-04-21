@@ -49,7 +49,7 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: labeler-cache/issues-model.zip
-        key: issue-labeler/issues/model/${{ inputs.cache_key }}
+        key: issue-labeler/model/issues/${{ inputs.cache_key }}
         fail-on-cache-miss: true
 
     - name: "Restore Pull Model from Cache"
@@ -58,7 +58,7 @@ runs:
       uses: actions/cache/restore@v4
       with:
         path: labeler-cache/pulls-model.zip
-        key: issue-labeler/pulls/model/${{ inputs.cache_key }}
+        key: issue-labeler/model/pulls/${{ inputs.cache_key }}
         fail-on-cache-miss: true
 
     - name: "Set up .NET"

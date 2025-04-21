@@ -9,10 +9,10 @@ inputs:
     description: "Set to true to train the pulls model"
     required: true
   data_cache_key:
-    description: "The optional cache key suffix to use for loading the data"
-    required: false
+    description: "The cache key suffix to use for the downloaded data"
+    required: true
   model_cache_key:
-    description: "The cache key suffix to use for saving the model"
+    description: "The cache key suffix to use for the trained model"
     required: true
 
 branding:
@@ -27,20 +27,18 @@ runs:
       shell: bash
       run: |
         echo "ISSUE_DATA_PATH=labeler-cache/issue-data.tsv" >> $GITHUB_ENV
-        echo "ISSUE_DATA_CACHE_KEY=${{ format('issue-labeler/issues/data{0}', inputs.data_cache_key && format('/{0}', inputs.data_cache_key) || '') }}" >> $GITHUB_ENV
+        echo "ISSUE_DATA_CACHE_KEY=${{ format('issue-labeler/data/issues/{0}', inputs.data_cache_key) }}" >> $GITHUB_ENV
         echo "ISSUE_MODEL_PATH=labeler-cache/issues-model.zip" >> $GITHUB_ENV
-        echo "ISSUE_MODEL_CACHE_KEY=${{ format('issue-labeler/issues/model/{0}', inputs.model_cache_key) }}" >> $GITHUB_ENV
-        echo "ISSUE_BACKUP_CACHE_KEY=${{ format('issue-labeler/issues/model/{0}/backup', inputs.model_cache_key) }}" >> $GITHUB_ENV
+        echo "ISSUE_MODEL_CACHE_KEY=${{ format('issue-labeler/model/issues/{0}', inputs.model_cache_key) }}" >> $GITHUB_ENV
 
     - name: "Set Environment Variables for Pulls"
       if: ${{ inputs.pulls }}
       shell: bash
       run: |
         echo "PULL_DATA_PATH=labeler-cache/pull-data.tsv" >> $GITHUB_ENV
-        echo "PULL_DATA_CACHE_KEY=${{ format('issue-labeler/pulls/data{0}', inputs.data_cache_key && format('/{0}', inputs.data_cache_key) || '') }}" >> $GITHUB_ENV
+        echo "PULL_DATA_CACHE_KEY=${{ format('issue-labeler/data/pulls/{0}', inputs.data_cache_key) }}" >> $GITHUB_ENV
         echo "PULL_MODEL_PATH=labeler-cache/pulls-model.zip" >> $GITHUB_ENV
-        echo "PULL_MODEL_CACHE_KEY=${{ format('issue-labeler/pulls/model/{0}', inputs.model_cache_key) }}" >> $GITHUB_ENV
-        echo "PULL_BACKUP_CACHE_KEY=${{ format('issue-labeler/pulls/model/{0}/backup', inputs.model_cache_key) }}" >> $GITHUB_ENV
+        echo "PULL_MODEL_CACHE_KEY=${{ format('issue-labeler/model/pulls/{0}', inputs.model_cache_key) }}" >> $GITHUB_ENV
 
     # Check out the repository before restoring the cache
     # This ensures that any restored files are not removed during the checkout process
