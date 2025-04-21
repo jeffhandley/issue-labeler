@@ -104,7 +104,10 @@ try
 {
     allTasks.Wait();
 }
-catch (AggregateException) { }
+catch (AggregateException ex)
+{
+    action.Summary.AddAlert(ex.Message, AlertType.Caution);
+}
 
 foreach (var prediction in allTasks.Result)
 {
@@ -120,6 +123,8 @@ foreach (var prediction in allTasks.Result)
         action.Summary.AddAlert(predictionResult, AlertType.Warning);
     }
 }
+
+await action.Summary.WriteAsync();
 
 async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEngine<T, LabelPrediction> predictor, ulong number, T issueOrPull, Func<string, bool> labelPredicate, string? defaultLabel, ModelType type, int[] retries, bool test) where T : Issue
 {

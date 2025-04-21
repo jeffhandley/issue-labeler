@@ -32,6 +32,7 @@ if (argsData.PullsModelPath is not null)
 }
 
 await Task.WhenAll(tasks);
+await action.Summary.WriteAsync();
 
 async IAsyncEnumerable<T> ReadData<T>(string dataPath, Func<ulong, string[], T> readLine, int? rowLimit)
 {
@@ -227,9 +228,6 @@ async Task TestPredictions<T>(IAsyncEnumerable<T> results, string modelPath) whe
     float matchPercentage = (float)matches / total;
     float mismatchPercentage = (float)mismatches / total;
 
-    AlertType resultAlert = (matchPercentage >= 0.65f && mismatchPercentage < 0.15f) ? AlertType.Note : AlertType.Warning;
-    action.Summary.AddAlert($"**{total}** items were tested with **{matchPercentage:P2} matches** and **{mismatchPercentage:P2} mismatches**. These results are considered favorable.", resultAlert);
-
     SummaryTableRow percentageRow = new([
         new("Percentage", Header: true, Alignment: TableColumnAlignment.Left),
         new($"{matchPercentage:P2}", Alignment: TableColumnAlignment.Right),
@@ -238,15 +236,20 @@ async Task TestPredictions<T>(IAsyncEnumerable<T> results, string modelPath) whe
         new($"{(float)noExisting / total:P2}", Alignment: TableColumnAlignment.Right)
     ]);
 
-    action.Summary.AddRaw($"Testing complete. **{total}** items tested, with the following results.");
-    action.Summary.AddTable([headerRow, countsRow, percentageRow]);
+    AlertType resultAlert = (matchPercentage >= 0.65f && mismatchPercentage < 0.15f) ? AlertType.Note : AlertType.Warning;
+    action.Summary.AddAlert($"**{total}** items were tested with **{matchPercentage:P2} matches** and **{mismatchPercentage:P2} mismatches**. These results are considered favorable.", resultAlert);
+    action.Summary.AddRawMarkdown($"Testing complete. **{total}** items tested, with the following results.");
     action.Summary.AddNewLine();
-    action.Summary.AddList([
+    action.Summary.AddNewLine();
+    action.Summary.AddMarkdownTable(new(headerRow, [countsRow, percentageRow]));
+    action.Summary.AddNewLine();
+    action.Summary.AddMarkdownList([
         "**Matches**: The predicted label matches the existing label, including when no prediction is made and there is no existing label. Correct prediction.",
         "**Mismatches**: The predicted label _does not match_ the existing label. Incorrect prediction.",
         "**No Prediction**: No prediction was made, but the existing item had a label. Incorrect prediction.",
         "**No Existing Label**: A prediction was made, but there was no existing label. Incorrect prediction."
     ]);
+    action.Summary.AddNewLine();
     action.Summary.AddAlert($"If the **Matches** percentage is **at least 65%** and the **Mismatches** percentage is **less than 15%**, the model testing is considered favorable.", AlertType.Tip);
 }
 

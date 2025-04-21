@@ -9,6 +9,7 @@ using Microsoft.ML.Transforms.Text;
 using Actions.Core;
 using Actions.Core.Extensions;
 using Actions.Core.Services;
+using Actions.Core.Markdown;
 
 using var provider = new ServiceCollection()
     .AddGitHubActionsCore()
@@ -24,26 +25,35 @@ if (config is not Args argsData)
 
 if (argsData.IssuesDataPath is not null && argsData.IssuesModelPath is not null)
 {
-    CreateModel(argsData.IssuesDataPath, argsData.IssuesModelPath, ModelType.Issue, action);
+    await CreateModel(argsData.IssuesDataPath, argsData.IssuesModelPath, ModelType.Issue, action);
 }
 
 if (argsData.PullsDataPath is not null && argsData.PullsModelPath is not null)
 {
-    CreateModel(argsData.PullsDataPath, argsData.PullsModelPath, ModelType.PullRequest, action);
+    await CreateModel(argsData.PullsDataPath, argsData.PullsModelPath, ModelType.PullRequest, action);
 }
 
-static void CreateModel(string dataPath, string modelPath, ModelType type, ICoreService action)
+await action.Summary.WriteAsync();
+
+static async Task CreateModel(string dataPath, string modelPath, ModelType type, ICoreService action)
 {
     if (!File.Exists(dataPath))
     {
         action.WriteNotice($"The data file '{dataPath}' does not exist.");
+        action.Summary.AddAlert("The data file does not exist. Training cannot proceed.", AlertType.Caution);
+        await action.Summary.WriteAsync();
+
         throw new InvalidOperationException($"The data file '{dataPath}' does not exist.");
     }
 
-    if (File.ReadLines(dataPath).Take(10).Count() < 10)
+    int recordsCounted = File.ReadLines(dataPath).Take(10).Count();
+    if (recordsCounted < 10)
     {
-        action.WriteNotice($"The data file '{dataPath}' does not contain enough data for training. A minimum of 10 records is required.");
-        throw new InvalidOperationException($"The data file '{dataPath}' does not contain enough data for training. A minimum of 10 records is required.");
+        action.WriteNotice($"The data file '{dataPath}' does not contain enough data for training. A minimum of 10 records is required, but only {recordsCounted} exist.");
+        action.Summary.AddAlert($"Only {recordsCounted} items were found to be used for training. A minimum of 10 records is required. Cannot proceed with training.", AlertType.Caution);
+        await action.Summary.WriteAsync();
+
+        throw new InvalidOperationException($"The data file '{dataPath}' does not contain enough data for training. A minimum of 10 records is required, but only {recordsCounted} exist.");
     }
 
     action.WriteInfo("Loading data into train/test sets...");
@@ -97,27 +107,32 @@ static void CreateModel(string dataPath, string modelPath, ModelType type, ICore
     action.WriteInfo("Evaluating against the test set...");
     var metrics = mlContext.MulticlassClassification.Evaluate(testModel, labelColumnName: "LabelKey");
 
-    void TeeOutput(string message)
-    {
-        action.WriteInfo(message);
-        action.Summary.AddRaw(message);
-    }
+    action.Summary.AddRawMarkdown($"""
+        * **MacroAccuracy**: {metrics.MacroAccuracy:0.####} (a value between 0 and 1; the closer to 1, the better)
+        * **MicroAccuracy**: {metrics.MicroAccuracy:0.####} (a value between 0 and 1; the closer to 1, the better)
+        * **LogLoss**: {metrics.LogLoss:0.####} (the closer to 0, the better)
+        {(metrics.PerClassLogLoss.Count() > 0 ? $"    * **Class 1**: {metrics.PerClassLogLoss[0]:0.####}" : "")}
+        {(metrics.PerClassLogLoss.Count() > 1 ? $"    * **Class 2**: {metrics.PerClassLogLoss[1]:0.####}" : "")}
+        {(metrics.PerClassLogLoss.Count() > 2 ? $"    * **Class 3**: {metrics.PerClassLogLoss[2]:0.####}" : "")}
+        """);
 
-    TeeOutput($"************************************************************");
-    TeeOutput($"MacroAccuracy = {metrics.MacroAccuracy:0.####}, a value between 0 and 1, the closer to 1, the better");
-    TeeOutput($"MicroAccuracy = {metrics.MicroAccuracy:0.####}, a value between 0 and 1, the closer to 1, the better");
-    TeeOutput($"LogLoss = {metrics.LogLoss:0.####}, the closer to 0, the better");
+    await action.Summary.WriteAsync();
+
+    action.WriteInfo($"************************************************************");
+    action.WriteInfo($"MacroAccuracy = {metrics.MacroAccuracy:0.####}, a value between 0 and 1, the closer to 1, the better");
+    action.WriteInfo($"MicroAccuracy = {metrics.MicroAccuracy:0.####}, a value between 0 and 1, the closer to 1, the better");
+    action.WriteInfo($"LogLoss = {metrics.LogLoss:0.####}, the closer to 0, the better");
 
     if (metrics.PerClassLogLoss.Count() > 0)
-        TeeOutput($"LogLoss for class 1 = {metrics.PerClassLogLoss[0]:0.####}, the closer to 0, the better");
+        action.WriteInfo($"LogLoss for class 1 = {metrics.PerClassLogLoss[0]:0.####}, the closer to 0, the better");
 
     if (metrics.PerClassLogLoss.Count() > 1)
-        TeeOutput($"LogLoss for class 2 = {metrics.PerClassLogLoss[1]:0.####}, the closer to 0, the better");
+        action.WriteInfo($"LogLoss for class 2 = {metrics.PerClassLogLoss[1]:0.####}, the closer to 0, the better");
 
     if (metrics.PerClassLogLoss.Count() > 2)
-        TeeOutput($"LogLoss for class 3 = {metrics.PerClassLogLoss[2]:0.####}, the closer to 0, the better");
+        action.WriteInfo($"LogLoss for class 3 = {metrics.PerClassLogLoss[2]:0.####}, the closer to 0, the better");
 
-    TeeOutput($"************************************************************");
+    action.WriteInfo($"************************************************************");
 
     action.WriteInfo($"Saving model to '{modelPath}'...");
     EnsureOutputDirectory(modelPath);

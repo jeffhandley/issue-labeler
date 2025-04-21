@@ -35,7 +35,18 @@ if (!string.IsNullOrEmpty(argsData.PullsDataPath))
     tasks.Add(Task.Run(() => DownloadPullRequests(argsData.PullsDataPath)));
 }
 
-await Task.WhenAll(tasks);
+var allTasks = Task.WhenAll(tasks);
+
+try
+{
+    allTasks.Wait();
+}
+catch (AggregateException ex)
+{
+    action.Summary.AddAlert(ex.Message, AlertType.Caution);
+}
+
+await action.Summary.WriteAsync();
 
 async Task DownloadIssues(string outputPath)
 {
