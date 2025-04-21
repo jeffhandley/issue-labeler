@@ -32,8 +32,11 @@ on:
       repository:
         description: "The org/repo to download data from (defaults to current repository)"
         type: string
-      data_limit:
+      limit:
         description: "Max number of items to include in the model (newest items are used)"
+        type: number
+      page_size:
+        description: "The number of items to include on each request."
         type: number
       cache_key_suffix:
         description: "The cache key suffix to use for staged data/models (use 'ACTIVE' to bypass staging)"
@@ -46,7 +49,8 @@ env:
   REPOSITORY: ${{ inputs.repository || github.repository }}
   LABEL_PREFIX: "area-"
   THRESHOLD: "0.40"
-  DATA_LIMIT: ${{ inputs.data_limit }}
+  LIMIT: ${{ inputs.limit }}
+  PAGE_SIZE: ${{ inputs.page_size }}
 
 jobs:
   issues-download:
@@ -59,11 +63,12 @@ jobs:
       - name: "Issues: Download Data"
         uses: jeffhandley/issue-labeler/download@main
         with:
-          issues: true
+          type: "issues"
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
-          issue_limit: ${{ env.DATA_LIMIT }}
+          limit: ${{ env.LIMIT }}
+          page_size: ${{ env.PAGE_SIZE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -77,7 +82,7 @@ jobs:
       - name: "Issues: Train Model"
         uses: jeffhandley/issue-labeler/train@main
         with:
-          issues: true
+          type: "issues"
           data_cache_key: ${{ env.CACHE_KEY }}
           model_cache_key: ${{ env.CACHE_KEY }}
 
@@ -89,7 +94,7 @@ jobs:
       - name: "Issues: Test Model"
         uses: jeffhandley/issue-labeler/test@main
         with:
-          issues: true
+          type: "issues"
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
@@ -107,11 +112,11 @@ jobs:
       - name: "Issues: Download Data"
         uses: jeffhandley/issue-labeler/download@main
         with:
-          pulls: true
+          type: "pulls"
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
-          pull_limit: ${{ env.DATA_LIMIT }}
+          limit: ${{ env.LIMIT }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -125,7 +130,7 @@ jobs:
       - name: "Issues: Train Model"
         uses: jeffhandley/issue-labeler/train@main
         with:
-          pulls: true
+          type: "pulls"
           data_cache_key: ${{ env.CACHE_KEY }}
           model_cache_key: ${{ env.CACHE_KEY }}
 
@@ -137,7 +142,7 @@ jobs:
       - name: "Issues: Test Model"
         uses: jeffhandley/issue-labeler/test@main
         with:
-          pulls: true
+          type: "pulls"
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}

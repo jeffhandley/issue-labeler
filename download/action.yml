@@ -1,140 +1,64 @@
 name: "Download Data"
-description: "Download GitHub issues and/or pull requests and cache the data."
-author: "Microsoft"
+description: "Download GitHub issues or pull requests and cache the data."
 
 branding:
-  color: purple
-  icon: tag
+  color: "purple"
+  icon: "tag"
 
 inputs:
-  issues:
-    description: "Download issue data"
+  type:
+    description: "The type of data to download. Must be either 'issues' or 'pulls'."
     required: true
-    default: "false"
-  issue_limit:
-    description: "Max number of issues to download (newest items are downloaded)."
-    required: false
-
-  pulls:
-    description: "Download pull data"
-    required: true
-    default: "false"
-  pull_limit:
-    description: "Max number of pulls to download (newest items are downloaded)."
-    required: false
-
   label_prefix:
     description: "The label prefix to be used for model training. Must end in a non-alphanumeric character."
     required: true
-  page_size:
-    description: "The number of items to include on each request."
-    required: false
-  page_limit:
-    description: "Max pages of items to download."
-    required: false
-  retries:
-    description: "Comma-separated list of retry delays in seconds."
-    required: false
-
-  repository:
-    description: "The org/repo to download data from. Defaults to current repository."
-    required: false
-
   cache_key:
     description: "The cache key suffix to use for saving data. Default: 'staged'."
-    required: false
     default: "staged"
-  backup_cache_key:
-    description: "The cache key suffix to use for backing existing data. Default: 'backup'."
-    required: false
-    default: "backup"
+  limit:
+    description: "Max number of items to download (newest items are downloaded)."
+  page_size:
+    description: "The number of items to include on each request."
+  page_limit:
+    description: "Max pages of items to download."
+  retries:
+    description: "Comma-separated list of retry delays in seconds."
+  repository:
+    description: "The org/repo to download data from. Defaults to current repository."
 
 runs:
   using: "composite"
   steps:
-    - name: "Set Paths and Cache Keys for Issues and Pulls"
+    - name: "Validate Inputs"
       shell: bash
       run: |
-        if [[ "${{ inputs.issues }}" == 'true' ]]; then
-          echo "ISSUE_DATA_PATH=labeler-cache/issue-data.tsv" >> $GITHUB_ENV
-          echo "ISSUE_CACHE_KEY=${{ format('issue-labeler/data/issues/{0}', inputs.cache_key || 'staged') }}" >> $GITHUB_ENV
-          echo "ISSUE_BACKUP_CACHE_KEY=${{ format('issue-labeler/data/issues/{0}/{1}', inputs.cache_key || 'backup', inputs.backup_cache_key) }}" >> $GITHUB_ENV
-        fi
-        if [[ "${{ inputs.pulls }}" == 'true' ]]; then
-          echo "PULL_DATA_PATH=labeler-cache/pull-data.tsv" >> $GITHUB_ENV
-          echo "PULL_CACHE_KEY=${{ format('issue-labeler/data/pulls/{0}', inputs.cache_key || 'staged') }}" >> $GITHUB_ENV
-          echo "PULL_BACKUP_CACHE_KEY=${{ format('issue-labeler/data/pulls/{0}/{1}', inputs.cache_key || 'backup', inputs.backup_cache_key) }}" >> $GITHUB_ENV
+        if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
+          echo "Error: 'type' must be either 'issues' or 'pulls'."
+          exit 1
         fi
 
-    - name: "Restore Cache for Issues"
-      if: ${{ inputs.issues == 'true' }}
-      id: restore-issues-cache
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ env.ISSUE_DATA_PATH }}
-        key: ${{ env.ISSUE_CACHE_KEY }}
-        fail-on-cache-miss: false
+    - name: "Set Cache Variables"
+      shell: bash
+      run: |
+        echo "DATA_PATH=${{ format('labeler-cache/{0}-data.tsv', inputs.type) }}" >> $GITHUB_ENV
+        echo "CACHE_KEY=${{ format('issue-labeler/data/{0}/{1}', inputs.type, inputs.cache_key || 'staged') }}" >> $GITHUB_ENV
 
-    - name: "Restore Cache for Pulls"
-      if: ${{ inputs.pulls == 'true' }}
-      id: restore-pulls-cache
+    - name: "Check for Existing Cache"
+      id: check-cache
       uses: actions/cache/restore@v4
       with:
-        path: ${{ env.PULL_DATA_PATH }}
-        key: ${{ env.PULL_CACHE_KEY }}
-        fail-on-cache-miss: false
-
-    - name: "Check for Backup Cache for Issues"
-      if: ${{ inputs.issues == 'true' && steps.restore-issues-cache.outputs.cache-hit == 'true' }}
-      id: check-issues-backup
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ env.ISSUE_DATA_PATH }}
-        key: ${{ env.ISSUE_BACKUP_CACHE_KEY }}
+        path: ${{ env.DATA_PATH }}
+        key: ${{ env.CACHE_KEY }}
         lookup-only: true
         fail-on-cache-miss: false
 
-    - name: "Check for Backup Cache for Pulls"
-      if: ${{ inputs.pulls == 'true' && steps.restore-pulls-cache.outputs.cache-hit == 'true' }}
-      id: check-pulls-backup
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ env.PULL_DATA_PATH }}
-        key: ${{ env.PULL_BACKUP_CACHE_KEY }}
-        lookup-only: true
-        fail-on-cache-miss: false
-
-    - name: "Abort if Backup Cache Exists for Issues"
-      if: ${{ inputs.issues == 'true' && steps.check-issues-backup.outputs.cache-hit == 'true' }}
+    - name: "Abort if Existing Cache Exists"
       shell: bash
       run: |
-        echo "Cannot save backup of existing issue data. Backup cache key already exists."
-        echo "Key: ${{ env.ISSUE_BACKUP_CACHE_KEY }}"
-        exit 1
-
-    - name: "Abort if Backup Cache Exists for Pulls"
-      if: ${{ inputs.pulls == 'true' && steps.check-pulls-backup.outputs.cache-hit == 'true' }}
-      shell: bash
-      run: |
-        echo "Cannot save backup of existing pull data. Backup cache key already exists."
-        echo "Key: ${{ env.PULL_BACKUP_CACHE_KEY }}"
-        exit 1
-
-    - name: "Cache Backup for Issues"
-      if: ${{ inputs.issues == 'true' && steps.restore-issues-cache.outputs.cache-hit == 'true' }}
-      id: backup-issues-cache
-      uses: actions/cache/save@v4
-      with:
-        path: ${{ env.ISSUE_DATA_PATH }}
-        key: ${{ env.ISSUE_BACKUP_CACHE_KEY }}
-
-    - name: "Cache Backup for Pulls"
-      if: ${{ inputs.pulls == 'true' && steps.restore-pulls-cache.outputs.cache-hit == 'true' }}
-      id: backup-pulls-cache
-      uses: actions/cache/save@v4
-      with:
-        path: ${{ env.PULL_DATA_PATH }}
-        key: ${{ env.PULL_BACKUP_CACHE_KEY }}
+        if [[ "${{ steps.check-cache.outputs.cache-hit }}" == "true" ]]; then
+          echo "Error: Cache key already exists: ${{ env.CACHE_KEY }}"
+          exit 1
+        fi
 
     - name: "Check out the 'jeffhandley/issue-labeler' repo"
       uses: actions/checkout@v4
@@ -152,24 +76,14 @@ runs:
         dotnet run -c Release --project IssueLabeler/src/Downloader -- \
           ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
-          ${{ (inputs.issues == 'true' && format('--issue-data "{0}"', env.ISSUE_DATA_PATH)) || '' }} \
-          ${{ (inputs.issues == 'true' && inputs.issue_limit && format('--issue-limit {0}', inputs.issue_limit)) || '' }} \
-          ${{ (inputs.pulls == 'true' && format('--pull-data "{0}"', env.PULL_DATA_PATH)) || '' }} \
-          ${{ (inputs.pulls == 'true' && inputs.pull_limit && format('--pull-limit {0}', inputs.pull_limit)) || '' }} \
+          ${{ format('--{0}-data "{1}"', inputs.type, env.DATA_PATH) }} \
+          ${{ (inputs.limit && format('--{0}-limit {1}', inputs.type, inputs.limit)) || '' }} \
           ${{ (inputs.page_size && format('--page-size {0}', inputs.page_size)) || '' }} \
           ${{ (inputs.page_limit && format('--page-limit {0}', inputs.page_limit)) || '' }} \
           ${{ (inputs.retries && format('--retries "{0}"', inputs.retries)) || '' }}
 
-    - name: "Save Cache for Issues"
-      if: ${{ inputs.issues == 'true' }}
+    - name: "Save Cache"
       uses: actions/cache/save@v4
       with:
-        path: ${{ env.ISSUE_DATA_PATH }}
-        key: ${{ env.ISSUE_CACHE_KEY }}
-
-    - name: "Save Cache for Pulls"
-      if: ${{ inputs.pulls == 'true' }}
-      uses: actions/cache/save@v4
-      with:
-        path: ${{ env.PULL_DATA_PATH }}
-        key: ${{ env.PULL_CACHE_KEY }}
+        path: ${{ env.DATA_PATH }}
+        key: ${{ env.CACHE_KEY }}

@@ -8,12 +8,12 @@ public struct Args
     public string? Org { get; set; }
     public List<string> Repos { get; set; }
     public string? GithubToken { get; set; }
-    public string? IssueDataPath { get; set; }
-    public string? IssueModelPath { get; set; }
-    public int? IssueLimit { get; set; }
-    public string? PullDataPath { get; set; }
-    public string? PullModelPath { get; set; }
-    public int? PullLimit { get; set; }
+    public string? IssuesDataPath { get; set; }
+    public string? IssuesModelPath { get; set; }
+    public int? IssuesLimit { get; set; }
+    public string? PullsDataPath { get; set; }
+    public string? PullsModelPath { get; set; }
+    public int? PullsLimit { get; set; }
     public float? Threshold { get; set; }
     public Predicate<string> LabelPredicate { get; set; }
     public string[]? ExcludedAuthors { get; set; }
@@ -23,8 +23,8 @@ public struct Args
         // The entire condition is used to determine if the configuration is invalid.
         // If any of the following are true, the configuration is considered invalid:
         // • The LabelPredicate is null.
-        // • Both IssueDataPath and PullDataPath are null, and either Org, Repos, or GithubToken is null.
-        // • Both IssueModelPath and PullModelPath are null.
+        // • Both IssuesDataPath and PullsDataPath are null, and either Org, Repos, or GithubToken is null.
+        // • Both IssuesModelPath and PullsModelPath are null.
 
         string executableName = Process.GetCurrentProcess().ProcessName;
 
@@ -51,8 +51,8 @@ public struct Args
 
                 Optional arguments:
                   --threshold         Minimum prediction confidence threshold. Range (0,1]. Default 0.4.
-                  --issue-limit       Maximum number of issues to download. Default: No limit.
-                  --pull-limit        Maximum number of pull requests to download. Default: No limit.
+                  --issues-limit      Maximum number of issues to download. Default: No limit.
+                  --pulls-limit       Maximum number of pull requests to download. Default: No limit.
                   --excluded-authors  Comma-separated list of authors to exclude.
             """);
 
@@ -92,52 +92,52 @@ public struct Args
                     argsData.Repos = repos;
                     break;
 
-                case "--issue-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--issue-data", out string? issueDataPath))
+                case "--issues-data":
+                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-data", out string? IssuesDataPath))
                     {
                         return null;
                     }
-                    argsData.IssueDataPath = issueDataPath;
+                    argsData.IssuesDataPath = IssuesDataPath;
                     break;
 
                 case "--issues-model":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-model", out string? issueModelPath))
+                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-model", out string? IssuesModelPath))
                     {
                         return null;
                     }
-                    argsData.IssueModelPath = issueModelPath;
+                    argsData.IssuesModelPath = IssuesModelPath;
                     break;
 
-                case "--issue-limit":
-                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--issue-limit", out int? issueLimit))
+                case "--issues-limit":
+                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--issues-limit", out int? IssuesLimit))
                     {
                         return null;
                     }
-                    argsData.IssueLimit = issueLimit;
+                    argsData.IssuesLimit = IssuesLimit;
                     break;
 
-                case "--pull-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--pull-data", out string? pullDataPath))
+                case "--pulls-data":
+                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-data", out string? PullsDataPath))
                     {
                         return null;
                     }
-                    argsData.PullDataPath = pullDataPath;
+                    argsData.PullsDataPath = PullsDataPath;
                     break;
 
                 case "--pulls-model":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-model", out string? pullModelPath))
+                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-model", out string? PullsModelPath))
                     {
                         return null;
                     }
-                    argsData.PullModelPath = pullModelPath;
+                    argsData.PullsModelPath = PullsModelPath;
                     break;
 
-                case "--pull-limit":
-                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--pull-limit", out int? pullLimit))
+                case "--pulls-limit":
+                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--pulls-limit", out int? PullsLimit))
                     {
                         return null;
                     }
-                    argsData.PullLimit = pullLimit;
+                    argsData.PullsLimit = PullsLimit;
                     break;
 
                 case "--label-prefix":
@@ -172,10 +172,10 @@ public struct Args
 
         if (argsData.LabelPredicate is null ||
             (
-                argsData.IssueDataPath is null && argsData.PullDataPath is null &&
+                argsData.IssuesDataPath is null && argsData.PullsDataPath is null &&
                 (argsData.Org is null || argsData.Repos.Count == 0 || argsData.GithubToken is null)
             ) ||
-            (argsData.IssueModelPath is null && argsData.PullModelPath is null)
+            (argsData.IssuesModelPath is null && argsData.PullsModelPath is null)
         )
         {
             ShowUsage();

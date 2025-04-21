@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: jeffhandley/issue-labeler/restore@main
         with:
-          model: issues
+          type: issues
           cache_key: ${{ inputs.cache_key || 'ACTIVE' }}
 
   pulls:
@@ -34,5 +34,5 @@ jobs:
     steps:
       - uses: jeffhandley/issue-labeler/restore@main
         with:
-          model: pulls
+          type: pulls
           cache_key: ${{ inputs.cache_key || 'ACTIVE' }}

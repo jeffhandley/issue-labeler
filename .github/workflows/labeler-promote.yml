@@ -34,7 +34,7 @@ jobs:
       - name: "Promote Issues Model"
         uses: jeffhandley/issue-labeler/promote@main
         with:
-          model: "issues"
+          type: "issues"
           staged_key: ${{ inputs.staged_key }}
           backup_key: ${{ inputs.backup_key }}
 
@@ -45,6 +45,6 @@ jobs:
       - name: "Promote Pulls Model"
         uses: jeffhandley/issue-labeler/promote@main
         with:
-          model: "pulls"
+          type: "pulls"
           staged_key: ${{ inputs.staged_key }}
           backup_key: ${{ inputs.backup_key }}

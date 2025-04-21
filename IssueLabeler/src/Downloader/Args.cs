@@ -8,10 +8,10 @@ public struct Args
     public string Org { get; set; }
     public List<string> Repos { get; set; }
     public string GithubToken { get; set; }
-    public string? IssueDataPath { get; set; }
-    public int? IssueLimit { get; set; }
-    public string? PullDataPath { get; set; }
-    public int? PullLimit { get; set; }
+    public string? IssuesDataPath { get; set; }
+    public int? IssuesLimit { get; set; }
+    public string? PullsDataPath { get; set; }
+    public int? PullsLimit { get; set; }
     public int? PageSize { get; set; }
     public int? PageLimit { get; set; }
     public int[] Retries { get; set; }
@@ -37,14 +37,14 @@ public struct Args
                 --label-prefix      Prefix for label predictions. Must end with a character other than a letter or number.
 
               Required for downloading issue data:
-                --issue-data        Path for issue data file to create (TSV file).
+                --issues-data       Path for issue data file to create (TSV file).
 
               Required for downloading pull request data:
-                --pull-data         Path for pull request data file to create (TSV file).
+                --pulls-data        Path for pull request data file to create (TSV file).
 
               Optional arguments:
-                --issue-limit       Maximum number of issues to download.
-                --pull-limit        Maximum number of pull requests to download.
+                --issues-limit      Maximum number of issues to download.
+                --pulls-limit       Maximum number of pull requests to download.
                 --page-size         Number of items per page in GitHub API requests.
                 --page-limit        Maximum number of pages to retrieve.
                 --excluded-authors  Comma-separated list of authors to exclude.
@@ -87,36 +87,36 @@ public struct Args
                     argsData.Repos = repos;
                     break;
 
-                case "--issue-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--issue-data", out string? issueDataPath))
+                case "--issues-data":
+                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-data", out string? IssuesDataPath))
                     {
                         return null;
                     }
-                    argsData.IssueDataPath = issueDataPath;
+                    argsData.IssuesDataPath = IssuesDataPath;
                     break;
 
-                case "--issue-limit":
-                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--issue-limit", out int? issueLimit))
+                case "--issues-limit":
+                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--issues-limit", out int? IssuesLimit))
                     {
                         return null;
                     }
-                    argsData.IssueLimit = issueLimit;
+                    argsData.IssuesLimit = IssuesLimit;
                     break;
 
-                case "--pull-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--pull-data", out string? pullDataPath))
+                case "--pulls-data":
+                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-data", out string? PullsDataPath))
                     {
                         return null;
                     }
-                    argsData.PullDataPath = pullDataPath;
+                    argsData.PullsDataPath = PullsDataPath;
                     break;
 
-                case "--pull-limit":
-                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--pull-limit", out int? pullLimit))
+                case "--pulls-limit":
+                    if (!ArgUtils.TryDequeueInt(arguments, ShowUsage, "--pulls-limit", out int? PullsLimit))
                     {
                         return null;
                     }
-                    argsData.PullLimit = pullLimit;
+                    argsData.PullsLimit = PullsLimit;
                     break;
 
                 case "--page-size":
@@ -169,7 +169,7 @@ public struct Args
         }
 
         if (argsData.Org is null || argsData.Repos is null || argsData.LabelPredicate is null ||
-            (argsData.IssueDataPath is null && argsData.PullDataPath is null))
+            (argsData.IssuesDataPath is null && argsData.PullsDataPath is null))
         {
             ShowUsage();
             return null;

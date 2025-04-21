@@ -1,81 +1,63 @@
-name: "Test Issue and/or Pull Models"
+name: "Test a prediction model against existing labels"
 description: "Test predictions against the issue and/or pull models by downloading data and comparing predictions against existing labels."
-
-inputs:
-  cache_key:
-    description: "The cache key suffix to use for loading the model"
-    required: true
-
-  repository:
-    description: "The org/repo to download data from (defaults to current repository)"
-    required: false
-  label_prefix:
-    description: "Label Prefix"
-    required: true
-  threshold:
-    description: "The minimum confidence score for a label prediction"
-    required: true
-
-  issues:
-    description: "Test the issue model"
-    required: true
-  issue_limit:
-    description: "Max number of items to include in the test for issues"
-    required: false
-
-  pulls:
-    description: "Test the pull model"
-    required: true
-  pull_limit:
-    description: "Max number of items to include in the test for pulls"
-    required: false
 
 branding:
   color: "purple"
   icon: "tag"
 
+inputs:
+  type:
+    description: "The model to test. Must be either 'issues' or 'pulls'."
+    required: true
+  label_prefix:
+    description: "The label prefix to be used for model training. Must end in a non-alphanumeric character."
+    required: true
+  threshold:
+    description: "The minimum confidence score for a label prediction"
+    required: true
+  limit:
+    description: "Max number of items to download (newest items are downloaded)."
+  retries:
+    description: "Comma-separated list of retry delays in seconds."
+  cache_key:
+    description: "The cache key suffix to use for saving data. Default: 'staged'."
+    default: "staged"
+  repository:
+    description: "The org/repo to download data from. Defaults to current repository."
+
 runs:
   using: "composite"
   steps:
-    - name: "Check out repository"
+    - name: "Validate Inputs"
+      shell: bash
+      run: |
+        if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
+          echo "Error: 'type' must be either 'issues' or 'pulls'."
+          exit 1
+        fi
+
+    - name: "Check out the 'jeffhandley/issue-labeler' repo"
       uses: actions/checkout@v4
       with:
-        repository: "jeffhandley/issue-labeler"
+        repository: jeffhandley/issue-labeler
         ref: main
 
-    - name: "Restore Issue Model from Cache"
-      if: inputs.issues
-      id: restore-issue-cache
-      uses: actions/cache/restore@v4
+    - name: "Restore pulls model from cache"
+      uses: jeffhandley/issue-labeler/restore@main
       with:
-        path: labeler-cache/issues-model.zip
-        key: issue-labeler/model/issues/${{ inputs.cache_key }}
-        fail-on-cache-miss: true
+        type: ${{ inputs.type }}
+        cache_key: ${{ inputs.cache_key || 'staged' }}
 
-    - name: "Restore Pull Model from Cache"
-      if: inputs.pulls
-      id: restore-pull-cache
-      uses: actions/cache/restore@v4
-      with:
-        path: labeler-cache/pulls-model.zip
-        key: issue-labeler/model/pulls/${{ inputs.cache_key }}
-        fail-on-cache-miss: true
-
-    - name: "Set up .NET"
-      if: inputs.issues || inputs.pulls
-      uses: actions/setup-dotnet@v4
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: "9.0.x"
 
     - name: "Run Tester"
-      if: inputs.issues || inputs.pulls
       shell: bash
       run: |
         dotnet run -c Release --project IssueLabeler/src/Tester --  \
           ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
           ${{ format('--threshold {0}', inputs.threshold) }} \
-          ${{ (inputs.issues && format('--issues-model "{0}"', 'labeler-cache/issues-model.zip')) || '' }} \
-          ${{ (inputs.issues && inputs.issue_limit != null && format('--issue-limit {0}', inputs.issue_limit)) || '' }} \
-          ${{ (inputs.pulls && format('--pulls-model "{0}"', 'labeler-cache/pulls-model.zip')) || '' }} \
-          ${{ (inputs.pulls && inputs.pull_limit != null && format('--pull-limit {0}', inputs.pull_limit)) || '' }}
+          ${{ format('--{0}-model "labeler-cache/{0}-model.zip"', inputs.type) || '' }} \
+          ${{ (inputs.limit != null && format('--{0}-limit {1}', inputs.type, inputs.limit)) || '' }}

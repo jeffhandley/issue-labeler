@@ -5,10 +5,10 @@ using System.Diagnostics;
 
 public struct Args
 {
-    public string? IssueDataPath { get; set; }
-    public string? IssueModelPath { get; set; }
-    public string? PullDataPath { get; set; }
-    public string? PullModelPath { get; set; }
+    public string? IssuesDataPath { get; set; }
+    public string? IssuesModelPath { get; set; }
+    public string? PullsDataPath { get; set; }
+    public string? PullsModelPath { get; set; }
 
     static void ShowUsage(string? message = null)
     {
@@ -46,36 +46,36 @@ public struct Args
 
             switch (argument)
             {
-                case "--issue-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--issue-data", out string? issueDataPath))
+                case "--issues-data":
+                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-data", out string? IssuesDataPath))
                     {
                         return null;
                     }
-                    argsData.IssueDataPath = issueDataPath;
+                    argsData.IssuesDataPath = IssuesDataPath;
                     break;
 
                 case "--issues-model":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-model", out string? issueModelPath))
+                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-model", out string? IssuesModelPath))
                     {
                         return null;
                     }
-                    argsData.IssueModelPath = issueModelPath;
+                    argsData.IssuesModelPath = IssuesModelPath;
                     break;
 
-                case "--pull-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--pull-data", out string? pullDataPath))
+                case "--pulls-data":
+                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-data", out string? PullsDataPath))
                     {
                         return null;
                     }
-                    argsData.PullDataPath = pullDataPath;
+                    argsData.PullsDataPath = PullsDataPath;
                     break;
 
                 case "--pulls-model":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-model", out string? pullModelPath))
+                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-model", out string? PullsModelPath))
                     {
                         return null;
                     }
-                    argsData.PullModelPath = pullModelPath;
+                    argsData.PullsModelPath = PullsModelPath;
                     break;
 
                 default:
@@ -84,9 +84,9 @@ public struct Args
             }
         }
 
-        if ((argsData.IssueDataPath is null != argsData.IssueModelPath is null) ||
-            (argsData.PullDataPath is null != argsData.PullModelPath is null) ||
-            (argsData.IssueModelPath is null && argsData.PullModelPath is null))
+        if ((argsData.IssuesDataPath is null != argsData.IssuesModelPath is null) ||
+            (argsData.PullsDataPath is null != argsData.PullsModelPath is null) ||
+            (argsData.IssuesModelPath is null && argsData.PullsModelPath is null))
         {
             ShowUsage();
             return null;

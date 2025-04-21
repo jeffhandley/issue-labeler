@@ -12,14 +12,14 @@ if (config is not Args argsData)
     return;
 }
 
-if (argsData.IssueDataPath is not null && argsData.IssueModelPath is not null)
+if (argsData.IssuesDataPath is not null && argsData.IssuesModelPath is not null)
 {
-    CreateModel(argsData.IssueDataPath, argsData.IssueModelPath, ModelType.Issue);
+    CreateModel(argsData.IssuesDataPath, argsData.IssuesModelPath, ModelType.Issue);
 }
 
-if (argsData.PullDataPath is not null && argsData.PullModelPath is not null)
+if (argsData.PullsDataPath is not null && argsData.PullsModelPath is not null)
 {
-    CreateModel(argsData.PullDataPath, argsData.PullModelPath, ModelType.PullRequest);
+    CreateModel(argsData.PullsDataPath, argsData.PullsModelPath, ModelType.PullRequest);
 }
 
 static void CreateModel(string dataPath, string modelPath, ModelType type)

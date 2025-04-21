@@ -1,13 +1,10 @@
-name: "Train Models for Issues and/or Pulls"
-description: "Train the issue and/or pull models for label prediction."
+name: "Train a Labeler Model"
+description: "Train the issue or pull model for label prediction."
 
 inputs:
-  issues:
-    description: "Train the issues model"
-    required: false
-  pulls:
-    description: "Train the pulls model"
-    required: false
+  type:
+    description: "The model to test. Must be either 'issues' or 'pulls'."
+    required: true
   data_cache_key:
     description: "The cache key suffix to use for the downloaded data"
     required: true
@@ -25,64 +22,32 @@ runs:
     - name: "Validate Inputs"
       shell: bash
       run: |
-        if [[ "${{ inputs.issues }}" != "true" && "${{ inputs.pulls }}" != "true" ]]; then
-          echo "Error: At least one of 'issues' or 'pulls' must be set to true."
+        if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
+          echo "Error: 'type' must be either 'issues' or 'pulls'."
           exit 1
         fi
 
-    - name: "Set Environment Variables for Issues"
-      if: ${{ inputs.issues }}
+    - name: "Set Cache Variables"
       shell: bash
       run: |
-        echo "ISSUE_DATA_PATH=labeler-cache/issue-data.tsv" >> $GITHUB_ENV
-        echo "ISSUE_DATA_CACHE_KEY=${{ format('issue-labeler/data/issues/{0}', inputs.data_cache_key) }}" >> $GITHUB_ENV
-        echo "ISSUE_MODEL_PATH=labeler-cache/issues-model.zip" >> $GITHUB_ENV
-        echo "ISSUE_MODEL_CACHE_KEY=${{ format('issue-labeler/model/issues/{0}', inputs.model_cache_key) }}" >> $GITHUB_ENV
+        echo "DATA_PATH=labeler-cache/${{ inputs.type }}-data.tsv" >> $GITHUB_ENV
+        echo "DATA_CACHE_KEY=${{ format('issue-labeler/data/{0}/{1}', inputs.type, inputs.data_cache_key) }}" >> $GITHUB_ENV
+        echo "MODEL_PATH=labeler-cache/${{ inputs.type }}-model.zip" >> $GITHUB_ENV
+        echo "MODEL_CACHE_KEY=${{ format('issue-labeler/model/{0}/{1}', inputs.type, inputs.model_cache_key) }}" >> $GITHUB_ENV
 
-    - name: "Set Environment Variables for Pulls"
-      if: ${{ inputs.pulls }}
-      shell: bash
-      run: |
-        echo "PULL_DATA_PATH=labeler-cache/pull-data.tsv" >> $GITHUB_ENV
-        echo "PULL_DATA_CACHE_KEY=${{ format('issue-labeler/data/pulls/{0}', inputs.data_cache_key) }}" >> $GITHUB_ENV
-        echo "PULL_MODEL_PATH=labeler-cache/pulls-model.zip" >> $GITHUB_ENV
-        echo "PULL_MODEL_CACHE_KEY=${{ format('issue-labeler/model/pulls/{0}', inputs.model_cache_key) }}" >> $GITHUB_ENV
-
-    - name: "Check for an existing issues model"
-      if: ${{ inputs.issues }}
-      id: check-cache-issues
+    - name: "Check for an existing model"
+      id: check-cache
       uses: actions/cache/restore@v4
       with:
-        path: ${{ env.ISSUE_MODEL_PATH }}
-        key: ${{ env.ISSUE_MODEL_CACHE_KEY }}
+        path: ${{ env.MODEL_PATH }}
+        key: ${{ env.MODEL_CACHE_KEY }}
         lookup-only: true
 
-    - name: "Check for an existing pulls model"
-      if: ${{ inputs.pulls }}
-      id: check-cache-pulls
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ env.PULL_MODEL_PATH }}
-        key: ${{ env.PULL_MODEL_CACHE_KEY }}
-        lookup-only: true
-
-    - name: "Abort if there is an existing issues model or pulls model with the specified cache key"
-      if: ${{ inputs.issues || inputs.pulls }}
+    - name: "Abort if there is an existing model with the specified cache key"
       shell: bash
       run: |
-        CACHE_EXISTS=false
-
-        if [[ "${{ inputs.issues }}" == "true" && "${{ steps.check-cache-issues.outputs.cache-hit }}" == "true" ]]; then
-          echo "Model cache key for issues already exists: ${{ env.ISSUE_MODEL_CACHE_KEY }}"
-          CACHE_EXISTS=true
-        fi
-
-        if [[ "${{ inputs.pulls }}" == "true" && "${{ steps.check-cache-pulls.outputs.cache-hit }}" == "true" ]]; then
-          echo "Model cache key for pulls already exists: ${{ env.PULL_MODEL_CACHE_KEY }}"
-          CACHE_EXISTS=true
-        fi
-
-        if [[ "$CACHE_EXISTS" == "true" ]]; then
+        if [[ "${{ steps.check-cache.outputs.cache-hit }}" == "true" ]]; then
+          echo "Model cache key already exists: ${{ env.MODEL_CACHE_KEY }}"
           exit 1
         fi
 
@@ -92,48 +57,27 @@ runs:
         repository: jeffhandley/issue-labeler
         ref: main
 
-    - name: "Restore Data Cache for Issues"
-      if: ${{ inputs.issues }}
-      id: restore-cache-issues
+    - name: "Restore Data from Cache"
       uses: actions/cache/restore@v4
       with:
-        path: ${{ env.ISSUE_DATA_PATH }}
-        key: ${{ env.ISSUE_DATA_CACHE_KEY }}
-        fail-on-cache-miss: true
-
-    - name: "Restore Data Cache for Pulls"
-      if: ${{ inputs.pulls }}
-      id: restore-cache-pulls
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ env.PULL_DATA_PATH }}
-        key: ${{ env.PULL_DATA_CACHE_KEY }}
+        path: ${{ env.DATA_PATH }}
+        key: ${{ env.DATA_CACHE_KEY }}
         fail-on-cache-miss: true
 
     - name: "Setup .NET SDK"
-      if: ${{ inputs.issues || inputs.pulls }}
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: "9.0.x"
 
     - name: "Run Trainer"
-      if: ${{ inputs.issues || inputs.pulls }}
       shell: bash
       run: |
         dotnet run -c Release --project IssueLabeler/src/Trainer -- \
-        ${{ (inputs.issues && format('--issue-data "{0}" --issues-model "{1}"', env.ISSUE_DATA_PATH, env.ISSUE_MODEL_PATH)) || '' }} \
-        ${{ (inputs.pulls && format('--pull-data "{0}" --pulls-model "{1}"', env.PULL_DATA_PATH, env.PULL_MODEL_PATH)) || '' }}
+          ${{ format('--{0}-data "{1}"', inputs.type, env.DATA_PATH) }} \
+          ${{ format('--{0}-model "{1}"', inputs.type, env.MODEL_PATH) }} \
 
-    - name: "Save Model Cache for Issues"
-      if: ${{ inputs.issues }}
+    - name: "Save Model to Cache"
       uses: actions/cache/save@v4
       with:
-        path: ${{ env.ISSUE_MODEL_PATH }}
-        key: ${{ env.ISSUE_MODEL_CACHE_KEY }}
-
-    - name: "Save Model Cache for Pulls"
-      if: ${{ inputs.pulls }}
-      uses: actions/cache/save@v4
-      with:
-        path: ${{ env.PULL_MODEL_PATH }}
-        key: ${{ env.PULL_MODEL_CACHE_KEY }}
+        path: ${{ env.MODEL_PATH }}
+        key: ${{ env.MODEL_CACHE_KEY }}

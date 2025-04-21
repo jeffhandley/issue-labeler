@@ -46,14 +46,14 @@ public class GitHubApi
         string githubToken,
         string org, string repo,
         Predicate<string> labelPredicate,
-        int? issueLimit,
+        int? IssuesLimit,
         int pageSize,
         int pageLimit,
         int[] retries,
         string[] excludedAuthors,
         bool verbose = false)
     {
-        await foreach (var item in DownloadItems<Issue>("issues", githubToken, org, repo, labelPredicate, issueLimit, pageSize, pageLimit, retries, excludedAuthors, verbose))
+        await foreach (var item in DownloadItems<Issue>("issues", githubToken, org, repo, labelPredicate, IssuesLimit, pageSize, pageLimit, retries, excludedAuthors, verbose))
         {
             yield return (item.Item, item.Label);
         }
@@ -64,14 +64,14 @@ public class GitHubApi
         string org,
         string repo,
         Predicate<string> labelPredicate,
-        int? pullLimit,
+        int? PullsLimit,
         int pageSize,
         int pageLimit,
         int[] retries,
         string[] excludedAuthors,
         bool verbose = false)
     {
-        var items = DownloadItems<PullRequest>("pullRequests", githubToken, org, repo, labelPredicate, pullLimit, pageSize, pageLimit, retries, excludedAuthors, verbose);
+        var items = DownloadItems<PullRequest>("pullRequests", githubToken, org, repo, labelPredicate, PullsLimit, pageSize, pageLimit, retries, excludedAuthors, verbose);
 
         await foreach (var item in items)
         {

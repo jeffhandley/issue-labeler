@@ -10,12 +10,12 @@ if (config is not Args argsData) return;
 
 List<Task> tasks = [];
 
-if (argsData.IssueModelPath is not null)
+if (argsData.IssuesModelPath is not null)
 {
     tasks.Add(Task.Run(() => TestIssues()));
 }
 
-if (argsData.PullModelPath is not null)
+if (argsData.PullsModelPath is not null)
 {
     tasks.Add(Task.Run(() => TestPullRequests()));
 }
@@ -49,7 +49,7 @@ async IAsyncEnumerable<T> ReadData<T>(string dataPath, Func<ulong, string[], T> 
 
 async IAsyncEnumerable<Issue> DownloadIssues(string githubToken, string org, string repo)
 {
-    await foreach (var result in GitHubApi.DownloadIssues(githubToken, org, repo, argsData.LabelPredicate, argsData.IssueLimit, 100, 1000, [30, 30, 30], argsData.ExcludedAuthors ?? []))
+    await foreach (var result in GitHubApi.DownloadIssues(githubToken, org, repo, argsData.LabelPredicate, argsData.IssuesLimit, 100, 1000, [30, 30, 30], argsData.ExcludedAuthors ?? []))
     {
         yield return new(result.Issue, argsData.LabelPredicate);
     }
@@ -57,17 +57,17 @@ async IAsyncEnumerable<Issue> DownloadIssues(string githubToken, string org, str
 
 async Task TestIssues()
 {
-    if (argsData.IssueDataPath is not null)
+    if (argsData.IssuesDataPath is not null)
     {
-        var issueList = ReadData(argsData.IssueDataPath, (num, columns) => new Issue()
+        var issueList = ReadData(argsData.IssuesDataPath, (num, columns) => new Issue()
         {
             Number = num,
             Label = columns[0],
             Title = columns[1],
             Body = columns[2]
-        }, argsData.IssueLimit);
+        }, argsData.IssuesLimit);
 
-        await TestPredictions(issueList, argsData.IssueModelPath);
+        await TestPredictions(issueList, argsData.IssuesModelPath);
         return;
     }
 
@@ -78,14 +78,14 @@ async Task TestIssues()
             Console.WriteLine($"Downloading and testing issues from {argsData.Org}/{repo}.");
 
             var issueList = DownloadIssues(argsData.GithubToken, argsData.Org, repo);
-            await TestPredictions(issueList, argsData.IssueModelPath);
+            await TestPredictions(issueList, argsData.IssuesModelPath);
         }
     }
 }
 
 async IAsyncEnumerable<PullRequest> DownloadPullRequests(string githubToken, string org, string repo)
 {
-    await foreach (var result in GitHubApi.DownloadPullRequests(githubToken, org, repo, argsData.LabelPredicate, argsData.PullLimit, 25, 4000, [30, 30, 30], argsData.ExcludedAuthors ?? []))
+    await foreach (var result in GitHubApi.DownloadPullRequests(githubToken, org, repo, argsData.LabelPredicate, argsData.PullsLimit, 25, 4000, [30, 30, 30], argsData.ExcludedAuthors ?? []))
     {
         yield return new(result.PullRequest, argsData.LabelPredicate);
     }
@@ -93,9 +93,9 @@ async IAsyncEnumerable<PullRequest> DownloadPullRequests(string githubToken, str
 
 async Task TestPullRequests()
 {
-    if (argsData.PullDataPath is not null)
+    if (argsData.PullsDataPath is not null)
     {
-        var pullList = ReadData(argsData.PullDataPath, (num, columns) => new PullRequest()
+        var pullList = ReadData(argsData.PullsDataPath, (num, columns) => new PullRequest()
         {
             Number = num,
             Label = columns[0],
@@ -103,9 +103,9 @@ async Task TestPullRequests()
             Body = columns[2],
             FileNames = columns[3],
             FolderNames = columns[4]
-        }, argsData.PullLimit);
+        }, argsData.PullsLimit);
 
-        await TestPredictions(pullList, argsData.PullModelPath);
+        await TestPredictions(pullList, argsData.PullsModelPath);
         return;
     }
 
@@ -116,7 +116,7 @@ async Task TestPullRequests()
             Console.WriteLine($"Downloading and testing pull requests from {argsData.Org}/{repo}.");
 
             var pullList = DownloadPullRequests(argsData.GithubToken, argsData.Org, repo);
-            await TestPredictions(pullList, argsData.PullModelPath);
+            await TestPredictions(pullList, argsData.PullsModelPath);
         }
     }
 }

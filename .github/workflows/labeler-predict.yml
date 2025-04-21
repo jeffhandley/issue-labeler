@@ -41,29 +41,21 @@ env:
   DEFAULT_LABEL: "needs-area-label"
 
 jobs:
-  predict:
+  issues:
     # Do not run the workflow on forks outside the 'jeffhandley' org
     if: ${{ github.repository_owner == 'jeffhandley' && (inputs.issues || github.event.issue.number) }}
-    permissions:
-      issues: write
-
     runs-on: ubuntu-latest
-
     steps:
       - name: "Restore issues model from cache"
         if: ${{ inputs.issues || github.event == 'issues' }}
         uses: jeffhandley/issue-labeler/restore@main
         with:
-          model: issues
-
-      - name: "Restore pulls model from cache"
-        if: ${{ inputs.pulls || github.event == 'pull_request_target' }}
-        uses: jeffhandley/issue-labeler/restore@main
-        with:
-          model: pulls
+          type: issues
 
       - name: "Predict issue labels"
         if: ${{ inputs.issues || github.event == 'issues' }}
+        permissions:
+          issues: write
         uses: jeffhandley/issue-labeler/predict@main
         with:
           issues:        ${{ inputs.issues || github.event.issue.number }}
@@ -73,8 +65,21 @@ jobs:
         env:
           GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
 
+  pulls:
+    # Do not run the workflow on forks outside the 'jeffhandley' org
+    if: ${{ github.repository_owner == 'jeffhandley' && (inputs.pulls || github.event.number) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Restore pulls model from cache"
+        if: ${{ inputs.pulls || github.event == 'pull_request_target' }}
+        uses: jeffhandley/issue-labeler/restore@main
+        with:
+          type: pulls
+
       - name: "Predict pull labels"
         if: ${{ inputs.pulls || github.event == 'pull_request_target' }}
+        permissions:
+          pull-requests: write
         uses: jeffhandley/issue-labeler/predict@main
         with:
           pulls:         ${{ inputs.pulls || github.event.number }}

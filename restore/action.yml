@@ -1,8 +1,8 @@
-name: "Restore active model from cache"
+name: "Restore prediction model from cache"
 description: "Restore an active model from cache for prediction or cache-retention."
 
 inputs:
-  model:
+  type:
     description: "The model to promote. Must be 'issues' or 'pulls'."
     required: true
 
@@ -21,14 +21,14 @@ runs:
     - name: "Validate Inputs"
       shell: bash
       run: |
-        if [[ "${{ inputs.model }}" != "issues" && "${{ inputs.model }}" != "pulls" ]]; then
-          echo "Invalid model: ${{ inputs.model }}. Must be 'issues' or 'pulls'."
+        if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
+          echo "Invalid type: ${{ inputs.type }}. Must be 'issues' or 'pulls'."
           exit 1
         fi
 
     - name: "Restore model from cache"
       uses: actions/cache/restore@v4
       with:
-        path: labeler-cache/${{ inputs.model }}-model.zip
-        key: issue-labeler/model/${{ inputs.model }}/${{ inputs.cache_key || 'ACTIVE' }}
+        path: labeler-cache/${{ inputs.type }}-model.zip
+        key: issue-labeler/model/${{ inputs.type }}/${{ inputs.cache_key || 'ACTIVE' }}
         fail-on-cache-miss: true
