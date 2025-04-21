@@ -2,9 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
-using Actions.Core;
-using Actions.Core.Extensions;
 using Actions.Core.Services;
 
 public struct Args
@@ -72,13 +69,8 @@ public struct Args
         Environment.Exit(1);
     }
 
-    public static Args? Parse(string[] args)
+    public static Args? Parse(string[] args, ICoreService action)
     {
-        using var provider = new ServiceCollection()
-            .AddGitHubActionsCore()
-            .BuildServiceProvider();
-
-        var action = provider.GetRequiredService<ICoreService>();
         ArgUtils.TryGetRequiredString("GITHUB_TOKEN", Environment.GetEnvironmentVariable, out var token, ShowUsage);
         ArgUtils.TryParseRepo("repo", i => action.GetInput(i), out var org, out var repo, ShowUsage);
         ArgUtils.TryParseLabelPrefix("label_prefix", i => action.GetInput(i), out var labelPredicate, ShowUsage);

@@ -1,22 +1,32 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.ML;
 using Microsoft.ML.Data;
+using Actions.Core;
+using Actions.Core.Extensions;
+using Actions.Core.Markdown;
+using Actions.Core.Services;
 using GitHubClient;
 
-var config = Args.Parse(args);
+using var provider = new ServiceCollection()
+    .AddGitHubActionsCore()
+    .BuildServiceProvider();
+
+var action = provider.GetRequiredService<ICoreService>();
+var config = Args.Parse(args, action);
 if (config is not Args argsData) return;
 
 List<Task<(ModelType Type, ulong Number, bool Success, string[] Output)>> tasks = new();
 
 if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
 {
-    Console.WriteLine("Loading issues model...");
+    action.WriteInfo($"Loading prediction engine for issues model: {argsData.IssuesModelPath}");
     var issueContext = new MLContext();
     var issueModel = issueContext.Model.Load(argsData.IssuesModelPath, out _);
     var issuePredictor = issueContext.Model.CreatePredictionEngine<Issue, LabelPrediction>(issueModel);
-    Console.WriteLine("Issues prediction engine ready.");
+    action.WriteInfo($"Issues prediction engine ready.");
 
     foreach (ulong issueNumber in argsData.Issues)
     {
@@ -24,13 +34,13 @@ if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
 
         if (result is null)
         {
-            Console.WriteLine($"[Issue #{issueNumber}] could not be found or downloaded. Skipped.");
+            action.WriteNotice($"[Issue #{issueNumber}] could not be found or downloaded. Skipped.");
             continue;
         }
 
-        if (argsData.ExcludedAuthors is not null && argsData.ExcludedAuthors.Contains(result.Author.Login, StringComparer.InvariantCultureIgnoreCase))
+        if (result.Author?.Login is not null && argsData.ExcludedAuthors is not null && argsData.ExcludedAuthors.Contains(result.Author.Login, StringComparer.InvariantCultureIgnoreCase))
         {
-            Console.WriteLine($"[Issue #{issueNumber}] Author '{result.Author.Login}' is in excluded list. Skipped.");
+            action.WriteNotice($"[Issue #{issueNumber}] Author '{result.Author.Login}' is in excluded list. Skipped.");
             continue;
         }
 
@@ -45,17 +55,17 @@ if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
             argsData.Test
         )));
 
-        Console.WriteLine($"[Issue #{issueNumber}] Queued for prediction.");
+        action.WriteInfo($"[Issue #{issueNumber}] Queued for prediction.");
     }
 }
 
 if (argsData.PullsModelPath is not null && argsData.Pulls is not null)
 {
-    Console.WriteLine("Loading pulls model...");
+    action.WriteInfo($"Loading prediction engine for pulls model: {argsData.IssuesModelPath}");
     var pullContext = new MLContext();
     var pullModel = pullContext.Model.Load(argsData.PullsModelPath, out _);
     var pullPredictor = pullContext.Model.CreatePredictionEngine<PullRequest, LabelPrediction>(pullModel);
-    Console.WriteLine("Pulls prediction engine ready.");
+    action.WriteInfo($"Pulls prediction engine ready.");
 
     foreach (ulong pullNumber in argsData.Pulls)
     {
@@ -63,13 +73,13 @@ if (argsData.PullsModelPath is not null && argsData.Pulls is not null)
 
         if (result is null)
         {
-            Console.WriteLine($"[Pull Request #{pullNumber}] could not be found or downloaded. Skipped.");
+            action.WriteNotice($"[Pull Request #{pullNumber}] could not be found or downloaded. Skipped.");
             continue;
         }
 
-        if (argsData.ExcludedAuthors is not null && argsData.ExcludedAuthors.Contains(result.Author.Login))
+        if (result.Author?.Login is not null && argsData.ExcludedAuthors is not null && argsData.ExcludedAuthors.Contains(result.Author.Login))
         {
-            Console.WriteLine($"[Pull Request #{pullNumber}] Author '{result.Author.Login}' is in excluded list. Skipped.");
+            action.WriteNotice($"[Pull Request #{pullNumber}] Author '{result.Author.Login}' is in excluded list. Skipped.");
             continue;
         }
 
@@ -84,7 +94,7 @@ if (argsData.PullsModelPath is not null && argsData.Pulls is not null)
             argsData.Test
         )));
 
-        Console.WriteLine($"[Pull Request #{pullNumber}] Queued for prediction.");
+        action.WriteInfo($"[Pull Request #{pullNumber}] Queued for prediction.");
     }
 }
 
@@ -98,11 +108,17 @@ catch (AggregateException) { }
 
 foreach (var prediction in allTasks.Result)
 {
-    Console.WriteLine($"""
+    string predictionResult = $"""
         [{prediction.Type} #{prediction.Number}{(prediction.Success ? "" : " FAILURE")}]
           {string.Join("\n  ", prediction.Output)}
+        """;
 
-        """);
+    action.WriteNotice(predictionResult);
+
+    if (!prediction.Success)
+    {
+        action.Summary.AddAlert(predictionResult, AlertType.Warning);
+    }
 }
 
 async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEngine<T, LabelPrediction> predictor, ulong number, T issueOrPull, Func<string, bool> labelPredicate, string? defaultLabel, ModelType type, int[] retries, bool test) where T : Issue

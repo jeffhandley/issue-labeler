@@ -53,7 +53,7 @@ env:
   PAGE_SIZE: ${{ inputs.page_size }}
 
 jobs:
-  issues-download:
+  download-issues:
     if: ${{ inputs.issues_download }}
     permissions:
       issues: read
@@ -72,9 +72,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  issues-train:
-    needs: issues-download
-    if: ${{ inputs.issues_train && always() && (needs.issues-download.result == 'success' || needs.issues-download.result == 'skipped') }}
+  train-issues:
+    needs: download-issues
+    if: ${{ inputs.issues_train && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') }}
     permissions:
       actions: write
     runs-on: ubuntu-latest
@@ -86,9 +86,9 @@ jobs:
           data_cache_key: ${{ env.CACHE_KEY }}
           model_cache_key: ${{ env.CACHE_KEY }}
 
-  issues-test:
-    needs: [issues-download, issues-train]
-    if: ${{ inputs.issues_test && always() && (needs.issues-download.result == 'success' || needs.issues-download.result == 'skipped') && (needs.issues-train.result == 'success' || needs.issues-train.result == 'skipped') }}
+  test-issues:
+    needs: [download-issues, train-issues]
+    if: ${{ inputs.issues_test && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') && (needs.train-issues.result == 'success' || needs.train-issues.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - name: "Issues: Test Model"
@@ -102,7 +102,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  pulls-download:
+  download-pulls:
     if: ${{ inputs.pulls_download }}
     permissions:
       pull-requests: read
@@ -120,9 +120,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  pulls-train:
-    needs: pulls-download
-    if: ${{ inputs.pulls_train && always() && (needs.pulls-download.result == 'success' || needs.pulls-download.result == 'skipped') }}
+  train-pulls:
+    needs: download-pulls
+    if: ${{ inputs.pulls_train && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') }}
     permissions:
       actions: write
     runs-on: ubuntu-latest
@@ -134,9 +134,9 @@ jobs:
           data_cache_key: ${{ env.CACHE_KEY }}
           model_cache_key: ${{ env.CACHE_KEY }}
 
-  pulls-test:
-    needs: [pulls-download, pulls-train]
-    if: ${{ inputs.pulls_test && always() && (needs.pulls-download.result == 'success' || needs.pulls-download.result == 'skipped') && (needs.pulls-train.result == 'success' || needs.pulls-train.result == 'skipped') }}
+  test-pulls:
+    needs: [download-pulls, train-pulls]
+    if: ${{ inputs.pulls_test && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') && (needs.train-pulls.result == 'success' || needs.train-pulls.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - name: "Issues: Test Model"

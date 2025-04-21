@@ -45,6 +45,8 @@ jobs:
     # Do not run the workflow on forks outside the 'jeffhandley' org
     if: ${{ github.repository_owner == 'jeffhandley' && (inputs.issues || github.event.issue.number) }}
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - name: "Restore issues model from cache"
         if: ${{ inputs.issues || github.event == 'issues' }}
@@ -54,8 +56,6 @@ jobs:
 
       - name: "Predict issue labels"
         if: ${{ inputs.issues || github.event == 'issues' }}
-        permissions:
-          issues: write
         uses: jeffhandley/issue-labeler/predict@main
         with:
           issues:        ${{ inputs.issues || github.event.issue.number }}
@@ -63,12 +63,14 @@ jobs:
           threshold:     ${{ env.THRESHOLD }}
           default_label: ${{ env.DEFAULT_LABEL }}
         env:
-          GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN:  ${{ github.token }}
 
   pulls:
     # Do not run the workflow on forks outside the 'jeffhandley' org
     if: ${{ github.repository_owner == 'jeffhandley' && (inputs.pulls || github.event.number) }}
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: "Restore pulls model from cache"
         if: ${{ inputs.pulls || github.event == 'pull_request_target' }}
@@ -78,8 +80,6 @@ jobs:
 
       - name: "Predict pull labels"
         if: ${{ inputs.pulls || github.event == 'pull_request_target' }}
-        permissions:
-          pull-requests: write
         uses: jeffhandley/issue-labeler/predict@main
         with:
           pulls:         ${{ inputs.pulls || github.event.number }}
@@ -87,4 +87,4 @@ jobs:
           threshold:     ${{ env.THRESHOLD }}
           default_label: ${{ env.DEFAULT_LABEL }}
         env:
-          GITHUB_TOKEN:  ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN:  ${{ github.token }}

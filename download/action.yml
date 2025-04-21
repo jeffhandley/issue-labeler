@@ -29,17 +29,16 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: "Validate Inputs"
+    - name: "Validate inputs and set cache variables"
       shell: bash
       run: |
         if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
-          echo "Error: 'type' must be either 'issues' or 'pulls'."
+          echo "::error::'type' must be either 'issues' or 'pulls'. Value provided: '${{ inputs.type }}'"
+          echo ":x: **ERROR**" >> $GITHUB_STEP_SUMMARY
+          echo "\`type\` must be either 'issues' or 'pulls'." >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
 
-    - name: "Set Cache Variables"
-      shell: bash
-      run: |
         echo "DATA_PATH=${{ format('labeler-cache/{0}-data.tsv', inputs.type) }}" >> $GITHUB_ENV
         echo "CACHE_KEY=${{ format('issue-labeler/data/{0}/{1}', inputs.type, inputs.cache_key || 'staged') }}" >> $GITHUB_ENV
 
@@ -56,7 +55,12 @@ runs:
       shell: bash
       run: |
         if [[ "${{ steps.check-cache.outputs.cache-hit }}" == "true" ]]; then
-          echo "Error: Cache key already exists: ${{ env.CACHE_KEY }}"
+          echo "::error::Cache key '${{ env.CACHE_KEY }}' already exists. Cannot proceed with downloading."
+          echo ":x: **ERROR**" >> $GITHUB_STEP_SUMMARY
+          echo "Cache key \`${{ env.CACHE_KEY }}\` already exists. Cannot proceed with downloading." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> [!TIP]" >> $GITHUB_STEP_SUMMARY
+          echo "> Either use a different \`cache_key\` value or delete the existing cache entry from the [Action Caches](/${{ github.repository }}/actions/caches) page and run the workflow again." >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
 

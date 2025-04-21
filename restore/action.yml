@@ -22,7 +22,9 @@ runs:
       shell: bash
       run: |
         if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
-          echo "Invalid type: ${{ inputs.type }}. Must be 'issues' or 'pulls'."
+          echo "::error::'type' must be either 'issues' or 'pulls'. Value provided: '${{ inputs.type }}'"
+          echo ":x: **ERROR**" >> $GITHUB_STEP_SUMMARY
+          echo "\`type\` must be either 'issues' or 'pulls'." >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
 
