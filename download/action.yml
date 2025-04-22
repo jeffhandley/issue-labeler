@@ -94,3 +94,10 @@ runs:
       with:
         path: ${{ env.DATA_PATH }}
         key: ${{ env.CACHE_KEY }}
+
+    - name: "Write Final Summary"
+      shell: bash
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## ${{ inputs.type == 'issues' && 'Issues' || 'Pull Requests' }} Data Available as \`${{ inputs.cache_key }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "The \`${{ inputs.cache_key }}\` data is saved to cache and available for training a model." >> $GITHUB_STEP_SUMMARY

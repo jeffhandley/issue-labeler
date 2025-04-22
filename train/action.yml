@@ -88,3 +88,10 @@ runs:
       with:
         path: ${{ env.MODEL_PATH }}
         key: ${{ env.MODEL_CACHE_KEY }}
+
+    - name: "Write Final Summary"
+      shell: bash
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## ${{ inputs.type == 'issues' && 'Issues' || 'Pull Requests' }} Model Available as \`${{ inputs.model_cache_key }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "The \`${{ inputs.model_cache_key }}\` model is saved to cache and available to test or promote." >> $GITHUB_STEP_SUMMARY
