@@ -26,7 +26,7 @@ jobs:
         with:
           type: issues
           cache_key: ${{ inputs.cache_key || 'ACTIVE' }}
-          retention: true
+          fail-on-cache-miss: true
 
   pulls:
     # Do not run the job on forks outside the 'jeffhandley' org
@@ -37,4 +37,4 @@ jobs:
         with:
           type: pulls
           cache_key: ${{ inputs.cache_key || 'ACTIVE' }}
-          retention: true
+          fail-on-cache-miss: true
