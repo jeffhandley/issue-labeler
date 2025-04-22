@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
-using System.Net.Http.Json;
 using Actions.Core.Services;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
+using System.Collections.Concurrent;
+using System.Net.Http.Json;
 
 namespace GitHubClient;
 

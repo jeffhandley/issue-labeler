@@ -1,13 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using static DataFileUtils;
-using Microsoft.Extensions.DependencyInjection;
-using Actions.Core;
 using Actions.Core.Extensions;
-using Actions.Core.Markdown;
 using Actions.Core.Services;
 using GitHubClient;
+using Microsoft.Extensions.DependencyInjection;
+using static DataFileUtils;
 
 using var provider = new ServiceCollection()
     .AddGitHubActionsCore()

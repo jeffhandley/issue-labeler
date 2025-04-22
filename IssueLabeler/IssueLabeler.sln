@@ -13,14 +13,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tester", "src\Tester\Tester
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GitHubClient", "src\GitHubClient\GitHubClient.csproj", "{57F2D1DC-DA30-40CA-AE1A-2EFD8139AF25}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1. Downloader", "1. Downloader", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2. Trainer", "2. Trainer", "{871B398D-3AB6-4F8B-9BC8-64646BDA0B75}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3. Tester", "3. Tester", "{48C9A18F-FB08-41D5-9832-492AEFF6B2B2}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "4. Predictor", "4. Predictor", "{79FFE9CC-3518-4A4E-8FAB-DB121EE93AB8}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{A2C54AC3-3D94-4CD3-885E-D1892063CC58}"
 	ProjectSection(SolutionItems) = preProject
 		.github\copilot-instructions.md = .github\copilot-instructions.md
@@ -67,10 +59,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{AB75FE13-DB1A-4B6F-8B27-1486F98EA75C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{F1FE4054-C44E-487F-90F9-2F111AB7BD9C} = {871B398D-3AB6-4F8B-9BC8-64646BDA0B75}
-		{2E39B0A5-2F4A-4D6E-8A0D-0366238CB21E} = {79FFE9CC-3518-4A4E-8FAB-DB121EE93AB8}
-		{BEA133F4-5686-49DF-83E4-641C26B3CC25} = {48C9A18F-FB08-41D5-9832-492AEFF6B2B2}
 		{43E392F7-70F3-471D-A96A-E413E4387CA6} = {A2C54AC3-3D94-4CD3-885E-D1892063CC58}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
