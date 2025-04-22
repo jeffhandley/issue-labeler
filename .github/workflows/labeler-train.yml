@@ -3,37 +3,32 @@ name: "Labeler: Training"
 on:
   workflow_dispatch:
     inputs:
-      issues_download:
-        description: "Issues: Download Data"
-        type: boolean
-        default: true
-      issues_train:
-        description: "Issues: Train Model"
-        type: boolean
-        default: true
-      issues_test:
-        description: "Issues: Test Model"
-        type: boolean
-        default: true
+      type:
+        description: "Issues or Pull Requests"
+        type: choice
+        required: true
+        default: Both
+        options:
+          - Both
+          - Issues
+          - Pulls
 
-      pulls_download:
-        description: "Pulls: Download Data"
-        type: boolean
-        default: true
-      pulls_train:
-        description: "Pulls: Train Model"
-        type: boolean
-        default: true
-      pulls_test:
-        description: "Pulls: Test Model"
-        type: boolean
-        default: true
+      steps:
+        description: "Training Steps"
+        type: choice
+        required: true
+        default: All
+        options:
+          - All
+          - Download Data
+          - Train Model
+          - Test Model
 
       repository:
         description: "The org/repo to download data from (defaults to current repository)"
         type: string
       limit:
-        description: "Max number of items to include in the model (newest items are used)"
+        description: "Max number of items to download for training/testing the model (newest items are used)"
         type: number
       page_size:
         description: "The number of items to include on each request."
@@ -48,13 +43,14 @@ env:
   CACHE_KEY: ${{ inputs.cache_key_suffix }}
   REPOSITORY: ${{ inputs.repository || github.repository }}
   LABEL_PREFIX: "area-"
+  EXCLUDED_AUTHORS: null
   THRESHOLD: "0.40"
   LIMIT: ${{ inputs.limit }}
   PAGE_SIZE: ${{ inputs.page_size }}
 
 jobs:
   download-issues:
-    if: ${{ inputs.issues_download }}
+    if: ${{ (inputs.type == 'Both' || inputs.type == 'Issues') && (inputs.steps == 'All' || inputs.steps == 'Download Data') }}
     permissions:
       issues: read
       actions: write
@@ -67,6 +63,7 @@ jobs:
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
+          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
           limit: ${{ env.LIMIT }}
           page_size: ${{ env.PAGE_SIZE }}
         env:
@@ -74,7 +71,7 @@ jobs:
 
   train-issues:
     needs: download-issues
-    if: ${{ inputs.issues_train && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') }}
+    if: ${{ (inputs.type == 'Both' || inputs.type == 'Issues') && (inputs.steps == 'All' || inputs.steps == 'Train Model') && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') }}
     permissions:
       actions: write
     runs-on: ubuntu-latest
@@ -88,7 +85,7 @@ jobs:
 
   test-issues:
     needs: [download-issues, train-issues]
-    if: ${{ inputs.issues_test && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') && (needs.train-issues.result == 'success' || needs.train-issues.result == 'skipped') }}
+    if: ${{ (inputs.type == 'Both' || inputs.type == 'Issues') && (inputs.steps == 'All' || inputs.steps == 'Test Model') && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') && (needs.train-issues.result == 'success' || needs.train-issues.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - name: "Issues: Test Model"
@@ -98,12 +95,15 @@ jobs:
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
+          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
           threshold: ${{ env.THRESHOLD }}
+          limit: ${{ env.LIMIT }}
+          page_size: ${{ env.PAGE_SIZE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   download-pulls:
-    if: ${{ inputs.pulls_download }}
+    if: ${{ (inputs.type == 'Both' || inputs.type == 'Pulls') && (inputs.steps == 'All' || inputs.steps == 'Download Data') }}
     permissions:
       pull-requests: read
       actions: write
@@ -116,13 +116,15 @@ jobs:
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
+          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
           limit: ${{ env.LIMIT }}
+          page_size: ${{ env.PAGE_SIZE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   train-pulls:
     needs: download-pulls
-    if: ${{ inputs.pulls_train && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') }}
+    if: ${{ (inputs.type == 'Both' || inputs.type == 'Pulls') && (inputs.steps == 'All' || inputs.steps == 'Train Model') && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') }}
     permissions:
       actions: write
     runs-on: ubuntu-latest
@@ -136,7 +138,7 @@ jobs:
 
   test-pulls:
     needs: [download-pulls, train-pulls]
-    if: ${{ inputs.pulls_test && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') && (needs.train-pulls.result == 'success' || needs.train-pulls.result == 'skipped') }}
+    if: ${{ (inputs.type == 'Both' || inputs.type == 'Pulls') && (inputs.steps == 'All' || inputs.steps == 'Test Model') && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') && (needs.train-pulls.result == 'success' || needs.train-pulls.result == 'skipped') }}
     runs-on: ubuntu-latest
     steps:
       - name: "Issues: Test Model"
@@ -146,6 +148,9 @@ jobs:
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
+          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
           threshold: ${{ env.THRESHOLD }}
+          limit: ${{ env.LIMIT }}
+          page_size: ${{ env.PAGE_SIZE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

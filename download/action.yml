@@ -12,9 +12,8 @@ inputs:
   label_prefix:
     description: "The label prefix to be used for model training. Must end in a non-alphanumeric character."
     required: true
-  cache_key:
-    description: "The cache key suffix to use for saving data."
-    default: "staged"
+  excluded_authors:
+    description: "Comma-separated list of authors to exclude."
   limit:
     description: "Max number of items to download (newest items are downloaded)."
   page_size:
@@ -25,6 +24,9 @@ inputs:
     description: "Comma-separated list of retry delays in seconds. Defaults to: 30,30,300,300,3000,3000."
   repository:
     description: "The org/repo to download data from. Defaults to current repository."
+  cache_key:
+    description: "The cache key suffix to use for saving data."
+    default: "staged"
 
 runs:
   using: "composite"
@@ -81,6 +83,7 @@ runs:
           ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
           ${{ format('--{0}-data "{1}"', inputs.type, env.DATA_PATH) }} \
+          ${{ (inputs.excluded_authors != null && format('--excluded-authors {1}', inputs.excluded_authors)) || '' }} \
           ${{ (inputs.limit && format('--{0}-limit {1}', inputs.type, inputs.limit)) || '' }} \
           ${{ (inputs.page_size && format('--page-size {0}', inputs.page_size)) || '' }} \
           ${{ (inputs.page_limit && format('--page-limit {0}', inputs.page_limit)) || '' }} \

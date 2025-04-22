@@ -71,8 +71,8 @@ runs:
           ${{ format('--threshold {0}', inputs.threshold) }} \
           ${{ format('--{0}-model "labeler-cache/{0}-model.zip"', inputs.type) || '' }} \
           ${{ (inputs.excluded_authors != null && format('--excluded-authors {1}', inputs.excluded_authors)) || '' }} \
-          ${{ (inputs.limit != null && format('--{0}-limit {1}', inputs.type, inputs.limit)) || '' }}
-          ${{ (inputs.page_size != null && format('--page-size {0}', inputs.page_size)) || '' }}
-          ${{ (inputs.page_limit != null && format('--page-limit {0}', inputs.page_limit)) || '' }}
-          ${{ (inputs.retries != null && format('--retries {0}', inputs.retries)) || '' }}
+          ${{ (inputs.limit != null && format('--{0}-limit {1}', inputs.type, inputs.limit)) || '' }} \
+          ${{ (inputs.page_size != null && format('--page-size {0}', inputs.page_size)) || '' }} \
+          ${{ (inputs.page_limit != null && format('--page-limit {0}', inputs.page_limit)) || '' }} \
+          ${{ (inputs.retries != null && format('--retries {0}', inputs.retries)) || '' }} \
           ${{ (inputs.verbose != null && format('--verbose {0}', inputs.verbose)) || '' }}
