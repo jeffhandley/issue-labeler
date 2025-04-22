@@ -15,8 +15,7 @@ using var provider = new ServiceCollection()
     .BuildServiceProvider();
 
 var action = provider.GetRequiredService<ICoreService>();
-var config = Args.Parse(args, action);
-if (config is not Args argsData) return;
+if (Args.Parse(args, action) is not Args argsData) return 1;
 
 List<Task<(ModelType Type, ulong Number, bool Success, string[] Output)>> tasks = new();
 
@@ -30,17 +29,17 @@ if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
 
     foreach (ulong issueNumber in argsData.Issues)
     {
-        var result = await GitHubApi.GetIssue(argsData.GithubToken, argsData.Org, argsData.Repo, issueNumber, argsData.Retries, action, argsData.Verbose);
+        var result = await GitHubApi.GetIssue(argsData.GitHubToken, argsData.Org, argsData.Repo, issueNumber, argsData.Retries, action, argsData.Verbose);
 
         if (result is null)
         {
-            action.WriteNotice($"[Issue #{issueNumber}] could not be found or downloaded. Skipped.");
+            action.WriteNotice($"[Issue {argsData.Org}/{argsData.Repo}#{issueNumber}] could not be found or downloaded. Skipped.");
             continue;
         }
 
-        if (result.Author?.Login is not null && argsData.ExcludedAuthors is not null && argsData.ExcludedAuthors.Contains(result.Author.Login, StringComparer.InvariantCultureIgnoreCase))
+        if (argsData.ExcludedAuthors is not null && result.Author?.Login is not null && argsData.ExcludedAuthors.Contains(result.Author.Login, StringComparer.InvariantCultureIgnoreCase))
         {
-            action.WriteNotice($"[Issue #{issueNumber}] Author '{result.Author.Login}' is in excluded list. Skipped.");
+            action.WriteNotice($"[Issue {argsData.Org}/{argsData.Repo}#{issueNumber}] Author '{result.Author.Login}' is in excluded list. Skipped.");
             continue;
         }
 
@@ -55,7 +54,7 @@ if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
             argsData.Test
         )));
 
-        action.WriteInfo($"[Issue #{issueNumber}] Queued for prediction.");
+        action.WriteInfo($"[Issue {argsData.Org}/{argsData.Repo}#{issueNumber}] Queued for prediction.");
     }
 }
 
@@ -69,17 +68,17 @@ if (argsData.PullsModelPath is not null && argsData.Pulls is not null)
 
     foreach (ulong pullNumber in argsData.Pulls)
     {
-        var result = await GitHubApi.GetPullRequest(argsData.GithubToken, argsData.Org, argsData.Repo, pullNumber, argsData.Retries, action, argsData.Verbose);
+        var result = await GitHubApi.GetPullRequest(argsData.GitHubToken, argsData.Org, argsData.Repo, pullNumber, argsData.Retries, action, argsData.Verbose);
 
         if (result is null)
         {
-            action.WriteNotice($"[Pull Request #{pullNumber}] could not be found or downloaded. Skipped.");
+            action.WriteNotice($"[Pull Request {argsData.Org}/{argsData.Repo}#{pullNumber}] could not be found or downloaded. Skipped.");
             continue;
         }
 
-        if (result.Author?.Login is not null && argsData.ExcludedAuthors is not null && argsData.ExcludedAuthors.Contains(result.Author.Login))
+        if (argsData.ExcludedAuthors is not null && result.Author?.Login is not null && argsData.ExcludedAuthors.Contains(result.Author.Login))
         {
-            action.WriteNotice($"[Pull Request #{pullNumber}] Author '{result.Author.Login}' is in excluded list. Skipped.");
+            action.WriteNotice($"[Pull Request {argsData.Org}/{argsData.Repo}#{pullNumber}] Author '{result.Author.Login}' is in excluded list. Skipped.");
             continue;
         }
 
@@ -94,25 +93,16 @@ if (argsData.PullsModelPath is not null && argsData.Pulls is not null)
             argsData.Test
         )));
 
-        action.WriteInfo($"[Pull Request #{pullNumber}] Queued for prediction.");
+        action.WriteInfo($"[Pull Request {argsData.Org}/{argsData.Repo}#{pullNumber}] Queued for prediction.");
     }
 }
 
-var allTasks = Task.WhenAll(tasks);
+var (predictionResults, success) = await App.RunTasks(tasks, action);
 
-try
-{
-    allTasks.Wait();
-}
-catch (AggregateException ex)
-{
-    action.Summary.AddAlert(ex.Message, AlertType.Caution);
-}
-
-foreach (var prediction in allTasks.Result)
+foreach (var prediction in predictionResults)
 {
     string predictionResult = $"""
-        [{prediction.Type} #{prediction.Number}{(prediction.Success ? "" : " FAILURE")}]
+        [{prediction.Type} {argsData.Org}/{argsData.Repo}#{prediction.Number}{(prediction.Success ? "" : " FAILURE")}]
           {string.Join("\n  ", prediction.Output)}
         """;
 
@@ -125,15 +115,18 @@ foreach (var prediction in allTasks.Result)
 }
 
 await action.Summary.WriteAsync();
+return success ? 0 : 1;
 
 async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEngine<T, LabelPrediction> predictor, ulong number, T issueOrPull, Func<string, bool> labelPredicate, string? defaultLabel, ModelType type, int[] retries, bool test) where T : Issue
 {
     List<string> output = new();
     string? error = null;
 
+    string typeName = type == ModelType.PullRequest ? "Pull Request" : "Issue";
+
     if (issueOrPull.HasMoreLabels)
     {
-        output.Add($"[{type} #{number}] No action taken. Too many labels applied already; cannot be sure no applicable label is already applied.");
+        output.Add($"[{typeName} {argsData.Org}/{argsData.Repo}#{number}] No action taken. Too many labels applied already; cannot be sure no applicable label is already applied.");
         return (type, number, true, output.ToArray());
     }
 
@@ -151,7 +144,7 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
         {
             if (!test)
             {
-                error = await GitHubApi.RemoveLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, defaultLabel, argsData.Retries, action);
+                error = await GitHubApi.RemoveLabel(argsData.GitHubToken, argsData.Org, argsData.Repo, typeName, number, defaultLabel, argsData.Retries, action);
             }
 
             output.Add(error ?? $"Removed default label '{defaultLabel}'.");
@@ -195,7 +188,7 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
     {
         if (!test)
         {
-            error = await GitHubApi.AddLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, bestScore.Label, retries, action);
+            error = await GitHubApi.AddLabel(argsData.GitHubToken, argsData.Org, argsData.Repo, typeName, number, bestScore.Label, retries, action);
         }
 
         output.Add(error ?? $"Added label '{bestScore.Label}'");
@@ -209,7 +202,7 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
         {
             if (!test)
             {
-                error = await GitHubApi.RemoveLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, defaultLabel, retries, action);
+                error = await GitHubApi.RemoveLabel(argsData.GitHubToken, argsData.Org, argsData.Repo, typeName, number, defaultLabel, retries, action);
             }
 
             output.Add(error ?? $"Removed default label '{defaultLabel}'");
@@ -228,7 +221,7 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
         {
             if (!test)
             {
-                error = await GitHubApi.AddLabel(argsData.GithubToken, argsData.Org, argsData.Repo, type.ToString(), number, defaultLabel, argsData.Retries, action);
+                error = await GitHubApi.AddLabel(argsData.GitHubToken, argsData.Org, argsData.Repo, typeName, number, defaultLabel, argsData.Retries, action);
             }
 
             output.Add(error ?? $"Applied default label '{defaultLabel}'.");

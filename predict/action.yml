@@ -16,6 +16,14 @@ inputs:
     required: true
   default_label:
     description: "The default label to apply if no prediction meets the threshold. Leave blank for no default label."
+  excluded_authors:
+    description: "Comma-separated list of authors to exclude."
+  retries:
+    description: "Comma-separated list of retry delays in seconds. Defaults to: 30,30,300,300,3000,3000."
+  test:
+    description: "Run in test mode, outputting predictions without applying labels."
+  verbose:
+    description: "Enable verbose output."
 
 branding:
   color: "purple"

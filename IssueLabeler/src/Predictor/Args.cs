@@ -6,19 +6,19 @@ using Actions.Core.Services;
 
 public struct Args
 {
+    public string GitHubToken => Environment.GetEnvironmentVariable("GITHUB_TOKEN")!;
     public string Org { get; set; }
     public string Repo { get; set; }
-    public string GithubToken { get; set; }
+    public float Threshold { get; set; }
+    public Func<string, bool> LabelPredicate { get; set; }
+    public string[]? ExcludedAuthors { get; set; }
     public string? IssuesModelPath { get; set; }
     public List<ulong>? Issues { get; set; }
     public string? PullsModelPath { get; set; }
     public List<ulong>? Pulls { get; set; }
-    public float Threshold { get; set; }
-    public Func<string, bool> LabelPredicate { get; set; }
     public string? DefaultLabel { get; set; }
     public int[] Retries { get; set; }
     public bool Verbose { get; set; }
-    public string[]? ExcludedAuthors { get; set; }
     public bool Test { get; set; }
 
     static void ShowUsage(string? message, ICoreService action)
@@ -27,41 +27,37 @@ public struct Args
             ERROR: Invalid or missing inputs.{{(message is null ? "" : " " + message)}}
 
             Required environment variables:
-              GITHUB_TOKEN      GitHub token to be used for API calls.
+              GITHUB_TOKEN            GitHub token to be used for API calls.
+
+            Inputs are specified as ALL_CAPS environment variables prefixed with 'INPUT_'.
 
             Required inputs:
-              label_prefix      Prefix for label predictions.
-                                Must end with a non-alphanumeric character.
+              REPO                    GitHub repository in the format {org}/{repo}.
+                                      Defaults to: GITHUB_REPOSITORY environment variable.
+              LABEL_PREFIX            Prefix for label predictions.
+                                      Must end with a non-alphanumeric character.
 
-            Required for predicting issue labels:
-              issues_model      Path to the issue prediction model file (ZIP file).
-              issues            Comma-separated list of issue number ranges.
-                                Example: 1-3,7,5-9.
+            Required inputs for predicting issue labels:
+              ISSUES_MODEL            Path to the issue prediction model file (ZIP file).
+              ISSUES                  Comma-separated list of issue number ranges.
+                                      Example: 1-3,7,5-9.
 
-            Required for predicting pull request labels:
-              pulls_model       Path to the pull request prediction model file (ZIP file).
-              pulls             Comma-separated list of pull request number ranges.
-                                Example: 1-3,7,5-9.
+            Required inputs for predicting pull request labels:
+              PULLS_MODEL             Path to the pull request prediction model file (ZIP file).
+              PULLS                   Comma-separated list of pull request number ranges.
+                                      Example: 1-3,7,5-9.
 
             Optional inputs:
-              repo              GitHub repository in the format {org}/{repo}.
-                                Defaults to: GITHUB_REPOSITORY environment variable.
-
-              default_label     Label to apply if no label is predicted.
-
-              threshold         Minimum prediction confidence threshold. Range (0,1].
-                                Defaults to: 0.4.
-
-              retries           Comma-separated retry delays in seconds.
-                                Defaults to: 30,30,300,300,3000,3000.
-
-              excluded_authors  Comma-separated list of authors to exclude.
-
-              test              Run in test mode, outputting predictions without applying labels.
-                                Must be one of: true, false, TRUE, FALSE
-
-              verbose           Enable verbose output.
-                                Must be one of: true, false, TRUE, FALSE
+              THRESHOLD               Minimum prediction confidence threshold. Range (0,1].
+                                      Defaults to: 0.4.
+              DEFAULT_LABEL           Label to apply if no label is predicted.
+              EXCLUDED_AUTHORS        Comma-separated list of authors to exclude.
+              RETRIES                 Comma-separated retry delays in seconds.
+                                      Defaults to: 30,30,300,300,3000,3000.
+              TEST                    Run in test mode, outputting predictions without applying labels.
+                                      Must be one of: true, false, TRUE, FALSE
+              VERBOSE                 Enable verbose output.
+                                      Must be one of: true, false, TRUE, FALSE
             """);
 
         Environment.Exit(1);
@@ -69,31 +65,29 @@ public struct Args
 
     public static Args? Parse(string[] args, ICoreService action)
     {
-        ArgUtils.TryGetRequiredString("GITHUB_TOKEN", Environment.GetEnvironmentVariable, out var token, m => ShowUsage(m, action));
-        ArgUtils.TryParseRepo("repo", i => action.GetInput(i), out var org, out var repo, m => ShowUsage(m, action));
-        ArgUtils.TryParseLabelPrefix("label_prefix", i => action.GetInput(i), out var labelPredicate, m => ShowUsage(m, action));
-        ArgUtils.TryParsePath("issues_model", i => action.GetInput(i), out var issuesModelPath);
-        ArgUtils.TryParseNumberRanges("issues", i => action.GetInput(i), out var issues, m => ShowUsage(m, action));
-        ArgUtils.TryParsePath("pulls_model", i => action.GetInput(i), out var pullsModelPath);
-        ArgUtils.TryParseNumberRanges("pulls", i => action.GetInput(i), out var pulls, m => ShowUsage(m, action));
-        ArgUtils.TryParseStringArray("excluded_authors", i => action.GetInput(i), out var excludedAuthors);
-        ArgUtils.TryParseFloat("threshold", i => action.GetInput(i), out var threshold, m => ShowUsage(m, action));
-        ArgUtils.TryParseIntArray("retries", i => action.GetInput(i), out var retries, m => ShowUsage(m, action));
+        ArgUtils argUtils = new(action, ShowUsage);
+        argUtils.TryGetRepo("repo", out var org, out var repo);
+        argUtils.TryGetLabelPrefix("label_prefix", out var labelPredicate);
+        argUtils.TryGetPath("issues_model", out var issuesModelPath);
+        argUtils.TryGetNumberRanges("issues", out var issues);
+        argUtils.TryGetPath("pulls_model", out var pullsModelPath);
+        argUtils.TryGetNumberRanges("pulls", out var pulls);
+        argUtils.TryGetStringArray("excluded_authors", out var excludedAuthors);
+        argUtils.TryGetFloat("threshold", out var threshold);
+        argUtils.TryGetIntArray("retries", out var retries);
+        argUtils.TryGetString("default_label", out var defaultLabel);
+        argUtils.TryGetFlag("test", out var test);
+        argUtils.TryGetFlag("verbose", out var verbose);
 
-        var defaultLabel = action.GetInput("default_label");
-        ArgUtils.GetFlag("test", i => action.GetInput(i), out var test, m => ShowUsage(m, action));
-        ArgUtils.GetFlag("verbose", i => action.GetInput(i), out var verbose, m => ShowUsage(m, action));
-
-        if (token is null || org is null || repo is null || threshold is null || labelPredicate is null ||
+        if (org is null || repo is null || threshold is null || labelPredicate is null ||
             (issues is null && pulls is null))
         {
             ShowUsage(null, action);
             return null;
         }
 
-        return new()
+        Args argsData = new()
         {
-            GithubToken = token,
             Org = org,
             Repo = repo,
             LabelPredicate = labelPredicate,
@@ -108,5 +102,13 @@ public struct Args
             Test = test ?? false,
             Verbose = verbose ?? false
         };
+
+        if (string.IsNullOrEmpty(argsData.GitHubToken))
+        {
+            ShowUsage("Environment variable GITHUB_TOKEN is empty.", action);
+            return null;
+        }
+
+        return argsData;
     }
 }

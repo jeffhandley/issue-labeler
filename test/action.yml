@@ -15,15 +15,23 @@ inputs:
   threshold:
     description: "The minimum confidence score for a label prediction"
     required: true
+  excluded_authors:
+    description: "Comma-separated list of authors to exclude."
   limit:
     description: "Max number of items to download (newest items are downloaded)."
+  page_size:
+    description: "Number of items per page in GitHub API requests. Defaults to: 100 for issues, 25 for pull requests"
+  page_limit:
+    description: "Maximum number of pages to retrieve. Defaults to: 1000 for issues, 4000 for pull requests."
   retries:
-    description: "Comma-separated list of retry delays in seconds."
+    description: "Comma-separated list of retry delays in seconds. Defaults to: 30,30,300,300,3000,3000."
   cache_key:
-    description: "The cache key suffix to use for saving data. Default: 'staged'."
+    description: "The cache key suffix to use for saving data."
     default: "staged"
   repository:
     description: "The org/repo to download data from. Defaults to current repository."
+  verbose:
+    description: "Enable verbose output."
 
 runs:
   using: "composite"
@@ -62,4 +70,9 @@ runs:
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
           ${{ format('--threshold {0}', inputs.threshold) }} \
           ${{ format('--{0}-model "labeler-cache/{0}-model.zip"', inputs.type) || '' }} \
+          ${{ (inputs.excluded_authors != null && format('--excluded-authors {1}', inputs.excluded_authors)) || '' }} \
           ${{ (inputs.limit != null && format('--{0}-limit {1}', inputs.type, inputs.limit)) || '' }}
+          ${{ (inputs.page_size != null && format('--page-size {0}', inputs.page_size)) || '' }}
+          ${{ (inputs.page_limit != null && format('--page-limit {0}', inputs.page_limit)) || '' }}
+          ${{ (inputs.retries != null && format('--retries {0}', inputs.retries)) || '' }}
+          ${{ (inputs.verbose != null && format('--verbose {0}', inputs.verbose)) || '' }}

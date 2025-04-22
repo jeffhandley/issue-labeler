@@ -18,22 +18,22 @@ using var provider = new ServiceCollection()
 var action = provider.GetRequiredService<ICoreService>();
 
 var config = Args.Parse(args, action);
-if (config is not Args argsData)
-{
-    return;
-}
+if (config is not Args argsData) return 1;
+
+List<Task> tasks = new();
 
 if (argsData.IssuesDataPath is not null && argsData.IssuesModelPath is not null)
 {
-    await CreateModel(argsData.IssuesDataPath, argsData.IssuesModelPath, ModelType.Issue, action);
+    tasks.Add(Task.Run(() => CreateModel(argsData.IssuesDataPath, argsData.IssuesModelPath, ModelType.Issue, action)));
 }
 
 if (argsData.PullsDataPath is not null && argsData.PullsModelPath is not null)
 {
-    await CreateModel(argsData.PullsDataPath, argsData.PullsModelPath, ModelType.PullRequest, action);
+    tasks.Add(Task.Run(() => CreateModel(argsData.PullsDataPath, argsData.PullsModelPath, ModelType.PullRequest, action)));
 }
 
-await action.Summary.WriteAsync();
+var success = await App.RunTasks(tasks, action);
+return success ? 0 : 1;
 
 static async Task CreateModel(string dataPath, string modelPath, ModelType type, ICoreService action)
 {

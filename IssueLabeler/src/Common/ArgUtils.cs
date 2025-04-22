@@ -3,18 +3,50 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
+using Actions.Core.Services;
 
-public static class ArgUtils
+public class ArgUtils
 {
-    public static string? GetString(string inputName, Func<string, string?> getInput)
+    private ICoreService action;
+    private Action<string?> showUsage;
+    private Queue<string>? arguments { get; }
+
+    public ArgUtils(ICoreService action, Action<string?, ICoreService> showUsage)
     {
-        string? input = getInput(inputName);
+        this.action = action;
+        this.showUsage = message => showUsage(message, action);
+    }
+
+    public ArgUtils(ICoreService action, Action<string?, ICoreService> showUsage, Queue<string> arguments) : this(action, showUsage)
+    {
+        this.arguments = arguments;
+    }
+
+    public string? GetInputString(string inputName)
+    {
+        string? input = action.GetInput(inputName);
         return string.IsNullOrWhiteSpace(input) ? null : input;
     }
 
-    public static bool GetFlag(string inputName, Func<string, string?> getInput, [NotNullWhen(true)] out bool? value, Action<string> showUsage)
+    public string? DequeueString()
     {
-        string? input = GetString(inputName, getInput);
+        if (arguments?.TryDequeue(out string? argValue) ?? false)
+        {
+            return string.IsNullOrWhiteSpace(argValue) ? null : argValue;
+        }
+
+        return null;
+    }
+
+    public bool TryGetString(string inputName, [NotNullWhen(true)] out string? value)
+    {
+        value = GetInputString(inputName);
+        return value is not null;
+    }
+
+    public bool TryGetFlag(string inputName, [NotNullWhen(true)] out bool? value)
+    {
+        string? input = GetInputString(inputName);
 
         if (input is null)
         {
@@ -33,30 +65,15 @@ public static class ArgUtils
         return true;
     }
 
-    public static bool TryGetRequiredString(string inputName, Func<string, string?> getInput, [NotNullWhen(true)] out string? value, Action<string> showUsage)
+    public bool TryGetRepo(string inputName, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out string? repo) =>
+        TryParseRepo(inputName, GetInputString(inputName), out org, out repo);
+
+    public bool TryDequeueRepo(string inputName, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out string? repo) =>
+        TryParseRepo(inputName, DequeueString(), out org, out repo);
+
+    private bool TryParseRepo(string inputName, string? orgRepo, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out string? repo)
     {
-        value = GetString(inputName, getInput);
-
-        if (value is null)
-        {
-            showUsage($"Input '{inputName}' has an empty value.");
-            return false;
-        }
-
-        return true;
-    }
-
-    public static bool TryDequeueString(Queue<string> args, Action<string> showUsage, string argName, [NotNullWhen(true)] out string? argValue) =>
-        TryGetRequiredString(argName, _ => Dequeue(args), out argValue, showUsage);
-
-    public static bool TryParseRepo(string inputName, Func<string, string?> getInput, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out string? repo, Action<string> showUsage)
-    {
-        string? orgRepo = GetString(inputName, getInput);
-
-        if (orgRepo is null)
-        {
-            orgRepo = GetString("GITHUB_REPOSITORY", Environment.GetEnvironmentVariable);
-        }
+        orgRepo ??= Environment.GetEnvironmentVariable("GITHUB_REPOSITORY");
 
         if (orgRepo is null || !orgRepo.Contains('/'))
         {
@@ -72,18 +89,15 @@ public static class ArgUtils
         return true;
     }
 
-    public static bool TryDequeueRepo(Queue<string> args, Action<string> showUsage, string argName, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out string? repo) =>
-        TryParseRepo(argName, _ => Dequeue(args), out org, out repo, showUsage);
-
-    public static bool TryDequeueRepoList(Queue<string> args, Action<string> showUsage, string argName, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out List<string>? repos)
+    public bool TryDequeueRepoList(string inputName, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out List<string>? repos)
     {
-        string? orgRepos = ArgUtils.Dequeue(args);
+        string? orgRepos = DequeueString();
         org = null;
         repos = null;
 
         if (orgRepos is null)
         {
-            showUsage($$"""Input '{{argName}}' has an empty value or is not in the format of '{org}/{repo}': {{orgRepos}}""");
+            showUsage($$"""Input '{{inputName}}' has an empty value or is not in the format of '{org}/{repo}': {{orgRepos}}""");
             return false;
         }
 
@@ -91,7 +105,7 @@ public static class ArgUtils
         {
             if (!orgRepo.Contains('/'))
             {
-                showUsage($$"""Input '{{argName}}' contains a value that is not in the format of '{org}/{repo}': {{orgRepo}}""");
+                showUsage($$"""Input '{{inputName}}' contains a value that is not in the format of '{org}/{repo}': {{orgRepo}}""");
                 return false;
             }
 
@@ -99,7 +113,7 @@ public static class ArgUtils
 
             if (org is not null && org != parts[0])
             {
-                showUsage($"All '{argName}' values must be from the same org.");
+                showUsage($"All '{inputName}' values must be from the same org.");
                 return false;
             }
 
@@ -111,10 +125,14 @@ public static class ArgUtils
         return (org is not null && repos is not null);
     }
 
-    public static bool TryParseLabelPrefix(string inputName, Func<string, string?> getInput, [NotNullWhen(true)] out Func<string, bool>? labelPredicate, Action<string> showUsage)
-    {
-        string? labelPrefix = GetString(inputName, getInput);
+    public bool TryGetLabelPrefix(string inputName, [NotNullWhen(true)] out Func<string, bool>? labelPredicate) =>
+        TryParseLabelPrefix(inputName, GetInputString(inputName), out labelPredicate);
 
+    public bool TryDequeueLabelPrefix(string inputName, [NotNullWhen(true)] out Func<string, bool>? labelPredicate) =>
+        TryParseLabelPrefix(inputName, DequeueString(), out labelPredicate);
+
+    private bool TryParseLabelPrefix(string inputName, string? labelPrefix, [NotNullWhen(true)] out Func<string, bool>? labelPredicate)
+    {
         if (labelPrefix is null)
         {
             labelPredicate = null;
@@ -132,6 +150,7 @@ public static class ArgUtils
                 The recommended label prefix terminating character is '-'.
                 The recommended label prefix for applying area labels is 'area-'.
                 """);
+
             labelPredicate = null;
             return false;
         }
@@ -140,12 +159,15 @@ public static class ArgUtils
         return true;
     }
 
-    public static bool TryDequeueLabelPrefix(Queue<string> args, Action<string> showUsage, string argName, [NotNullWhen(true)] out Func<string, bool>? labelPredicate) =>
-        TryParseLabelPrefix(argName, _ => Dequeue(args), out labelPredicate, showUsage);
+    public bool TryGetPath(string inputName, out string? path) =>
+        TryParsePath(GetInputString(inputName), out path);
 
-    public static bool TryParsePath(string inputName, Func<string, string?> getInput, out string? path)
+    public bool TryDequeuePath(string inputName, out string? path) =>
+        TryParsePath(DequeueString(), out path);
+
+    private bool TryParsePath(string? input, out string? path)
     {
-        path = GetString(inputName, getInput);
+        path = input;
 
         if (path is null)
         {
@@ -160,13 +182,14 @@ public static class ArgUtils
         return true;
     }
 
-    public static bool TryDequeuePath(Queue<string> args, string argName, out string? path) =>
-        TryParsePath(argName, _ => Dequeue(args), out path);
+    public bool TryGetStringArray(string inputName, [NotNullWhen(true)] out string[]? values) =>
+        TryParseStringArray(inputName, GetInputString(inputName), out values);
 
-    public static bool TryParseStringArray(string inputName, Func<string, string?> getInput, [NotNullWhen(true)] out string[]? values)
+    public bool TryDequeueStringArray(string inputName, [NotNullWhen(true)] out string[]? values) =>
+        TryParseStringArray(inputName, DequeueString(), out values);
+
+    private bool TryParseStringArray(string inputName, string? input, [NotNullWhen(true)] out string[]? values)
     {
-        string? input = GetString(inputName, getInput);
-
         if (input is null)
         {
             values = null;
@@ -177,13 +200,11 @@ public static class ArgUtils
         return true;
     }
 
-    public static bool TryDequeueStringArray(Queue<string> args, string argName, [NotNullWhen(true)] out string[]? argValues) =>
-        TryParseStringArray(argName, _ => Dequeue(args), out argValues);
+    public bool TryDequeueInt(string inputName, [NotNullWhen(true)] out int? value) =>
+        TryParseInt(inputName, DequeueString(), out value);
 
-    public static bool TryParseInt(string inputName, Func<string, string?> getInput, [NotNullWhen(true)] out int? value, Action<string> showUsage)
+    private bool TryParseInt(string inputName, string? input, [NotNullWhen(true)] out int? value)
     {
-        string? input = GetString(inputName, getInput);
-
         if (input is null || !int.TryParse(input, out int parsedValue))
         {
             showUsage($"Input '{inputName}' must be an integer.");
@@ -195,19 +216,20 @@ public static class ArgUtils
         return true;
     }
 
-    public static bool TryDequeueInt(Queue<string> args, Action<string> showUsage, string argName, [NotNullWhen(true)] out int? argValue) =>
-        TryParseInt(argName, _ => Dequeue(args), out argValue, showUsage);
+    public bool TryGetIntArray(string inputName, [NotNullWhen(true)] out int[]? values) =>
+        TryParseIntArray(inputName, GetInputString(inputName), out values);
 
-    public static bool TryParseIntArray(string inputName, Func<string, string?> getInput, [NotNullWhen(true)] out int[]? values, Action<string> showUsage)
+    public bool TryDequeueIntArray(string inputName, [NotNullWhen(true)] out int[]? values) =>
+        TryParseIntArray(inputName, DequeueString(), out values);
+
+    private bool TryParseIntArray(string inputName, string? input, [NotNullWhen(true)] out int[]? values)
     {
-        string? input = GetString(inputName, getInput);
-
         if (input is not null)
         {
             string[] inputValues = input.Split(',');
 
             int[] parsedValues = inputValues.SelectMany(v => {
-                if (!TryParseInt(inputName, _ => v, out int? value, showUsage))
+                if (!TryParseInt(inputName, v, out int? value))
                 {
                     return new int[0];
                 }
@@ -226,13 +248,14 @@ public static class ArgUtils
         return false;
     }
 
-    public static bool TryDequeueIntArray(Queue<string> args, Action<string> showUsage, string argName, [NotNullWhen(true)] out int[]? argValues) =>
-        TryParseIntArray(argName, _ => Dequeue(args), out argValues, showUsage);
+    public bool TryGetFloat(string inputName, [NotNullWhen(true)] out float? value) =>
+        TryParseFloat(inputName, GetInputString(inputName), out value);
 
-    public static bool TryParseFloat(string inputName, Func<string, string?> getInput, [NotNullWhen(true)] out float? value, Action<string> showUsage)
+    public bool TryDequeueFloat(string inputName, [NotNullWhen(true)] out float? value) =>
+        TryParseFloat(inputName, DequeueString(), out value);
+
+    private bool TryParseFloat(string inputName, string? input, [NotNullWhen(true)] out float? value)
     {
-        string? input = GetString(inputName, getInput);
-
         if (input is null || !float.TryParse(input, out float parsedValue))
         {
             showUsage($"Input '{inputName}' must be a decimal value.");
@@ -244,13 +267,14 @@ public static class ArgUtils
         return true;
     }
 
-    public static bool TryDequeueFloat(Queue<string> args, Action<string> showUsage, string argName, [NotNullWhen(true)] out float? argValue) =>
-        TryParseFloat(argName, _ => Dequeue(args), out argValue, showUsage);
+    public bool TryGetNumberRanges(string inputName, [NotNullWhen(true)] out List<ulong>? values) =>
+        TryParseNumberRanges(inputName, GetInputString(inputName), out values);
 
-    public static bool TryParseNumberRanges(string inputName, Func<string, string?> getInput, [NotNullWhen(true)] out List<ulong>? values, Action<string> showUsage)
+    public bool TryDequeueNumberRanges(string inputName, [NotNullWhen(true)] out List<ulong>? values) =>
+        TryParseNumberRanges(inputName, DequeueString(), out values);
+
+    private bool TryParseNumberRanges(string inputName, string? input, [NotNullWhen(true)] out List<ulong>? values)
     {
-        string? input = GetString(inputName, getInput);
-
         if (input is not null)
         {
             var showUsageError = () => showUsage($"Input '{inputName}' must be comma-separated list of numbers and/or dash-separated ranges. Example: 1-3,5,7-9.");
@@ -306,18 +330,5 @@ public static class ArgUtils
 
         values = null;
         return false;
-    }
-
-    public static bool TryDequeueNumberRanges(Queue<string> args, Action<string> showUsage, string argName, out List<ulong>? argValues) =>
-        TryParseNumberRanges(argName, _ => Dequeue(args), out argValues, showUsage);
-
-    public static string? Dequeue(Queue<string> args)
-    {
-        if (args.TryDequeue(out string? argValue))
-        {
-            return string.IsNullOrWhiteSpace(argValue) ? null : argValue;
-        }
-
-        return null;
     }
 }

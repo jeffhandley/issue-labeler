@@ -6,9 +6,9 @@ using Actions.Core.Services;
 
 public struct Args
 {
+    public string GitHubToken => Environment.GetEnvironmentVariable("GITHUB_TOKEN")!;
     public string Org { get; set; }
     public List<string> Repos { get; set; }
-    public string GithubToken { get; set; }
     public string? IssuesDataPath { get; set; }
     public int? IssuesLimit { get; set; }
     public string? PullsDataPath { get; set; }
@@ -22,35 +22,31 @@ public struct Args
 
     static void ShowUsage(string? message, ICoreService action)
     {
-        string executableName = Process.GetCurrentProcess().ProcessName;
-
         action.WriteNotice($$"""
             ERROR: Invalid or missing arguments.{{(message is null ? "" : " " + message)}}
 
-            Usage:
-              {{executableName}} --repo {org/repo1}[,{org/repo2},...] --label-prefix {label-prefix} [options]
+            Required environment variables:
+              GITHUB_TOKEN            GitHub token to be used for API calls.
 
-              Required environment variables:
-                GITHUB_TOKEN      GitHub token to be used for API calls.
+            Required arguments:
+              --repo                  The GitHub repositories in format org/repo (comma separated for multiple).
+              --label-prefix          Prefix for label predictions. Must end with a character other than a letter or number.
 
-              Required arguments:
-                --repo              The GitHub repositories in format org/repo (comma separated for multiple).
-                --label-prefix      Prefix for label predictions. Must end with a character other than a letter or number.
+            Required for downloading issue data:
+              --issues-data           Path for issue data file to create (TSV file).
 
-              Required for downloading issue data:
-                --issues-data       Path for issue data file to create (TSV file).
+            Required for downloading pull request data:
+              --pulls-data            Path for pull request data file to create (TSV file).
 
-              Required for downloading pull request data:
-                --pulls-data        Path for pull request data file to create (TSV file).
-
-              Optional arguments:
-                --issues-limit      Maximum number of issues to download.
-                --pulls-limit       Maximum number of pull requests to download.
-                --page-size         Number of items per page in GitHub API requests.
-                --page-limit        Maximum number of pages to retrieve.
-                --excluded-authors  Comma-separated list of authors to exclude.
-                --retries           Comma-separated retry delays in seconds. Default: 30,30,300,300,3000,3000.
-                --verbose           Enable verbose output.
+            Optional arguments:
+              --issues-limit          Maximum number of issues to download. Defaults to: No limit.
+              --pulls-limit           Maximum number of pull requests to download. Defaults to: No limit.
+              --page-size             Number of items per page in GitHub API requests.
+              --page-limit            Maximum number of pages to retrieve.
+              --excluded-authors      Comma-separated list of authors to exclude.
+              --retries               Comma-separated retry delays in seconds.
+                                      Defaults to: 30,30,300,300,3000,3000.
+              --verbose               Enable verbose output.
             """);
 
         Environment.Exit(1);
@@ -58,21 +54,20 @@ public struct Args
 
     public static Args? Parse(string[] args, ICoreService action)
     {
-        string? token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+        Queue<string> arguments = new(args);
+        ArgUtils argUtils = new(action, ShowUsage, arguments);
 
-        if (string.IsNullOrEmpty(token))
+        Args argsData = new()
+        {
+            Retries = [30, 30, 300, 300, 3000, 3000]
+        };
+
+        if (string.IsNullOrEmpty(argsData.GitHubToken))
         {
             ShowUsage("Environment variable GITHUB_TOKEN is empty.", action);
             return null;
         }
 
-        Args argsData = new()
-        {
-            GithubToken = token,
-            Retries = [30, 30, 300, 300, 3000, 3000]
-        };
-
-        Queue<string> arguments = new(args);
         while (arguments.Count > 0)
         {
             string argument = arguments.Dequeue();
@@ -80,7 +75,7 @@ public struct Args
             switch (argument)
             {
                 case "--repo":
-                    if (!ArgUtils.TryDequeueRepoList(arguments, m => ShowUsage(m, action), "--repo", out string? org, out List<string>? repos))
+                    if (!argUtils.TryDequeueRepoList("--repo", out string? org, out List<string>? repos))
                     {
                         return null;
                     }
@@ -88,8 +83,24 @@ public struct Args
                     argsData.Repos = repos;
                     break;
 
+                case "--label-prefix":
+                    if (!argUtils.TryDequeueLabelPrefix("--label-prefix", out Func<string, bool>? labelPredicate))
+                    {
+                        return null;
+                    }
+                    argsData.LabelPredicate = new(labelPredicate);
+                    break;
+
+                case "--excluded-authors":
+                    if (!argUtils.TryDequeueStringArray("--excluded-authors", out string[]? excludedAuthors))
+                    {
+                        return null;
+                    }
+                    argsData.ExcludedAuthors = excludedAuthors;
+                    break;
+
                 case "--issues-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-data", out string? IssuesDataPath))
+                    if (!argUtils.TryDequeuePath("--issues-data", out string? IssuesDataPath))
                     {
                         return null;
                     }
@@ -97,7 +108,7 @@ public struct Args
                     break;
 
                 case "--issues-limit":
-                    if (!ArgUtils.TryDequeueInt(arguments, m => ShowUsage(m, action), "--issues-limit", out int? IssuesLimit))
+                    if (!argUtils.TryDequeueInt("--issues-limit", out int? IssuesLimit))
                     {
                         return null;
                     }
@@ -105,7 +116,7 @@ public struct Args
                     break;
 
                 case "--pulls-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-data", out string? PullsDataPath))
+                    if (!argUtils.TryDequeuePath("--pulls-data", out string? PullsDataPath))
                     {
                         return null;
                     }
@@ -113,7 +124,7 @@ public struct Args
                     break;
 
                 case "--pulls-limit":
-                    if (!ArgUtils.TryDequeueInt(arguments, m => ShowUsage(m, action), "--pulls-limit", out int? PullsLimit))
+                    if (!argUtils.TryDequeueInt("--pulls-limit", out int? PullsLimit))
                     {
                         return null;
                     }
@@ -121,7 +132,7 @@ public struct Args
                     break;
 
                 case "--page-size":
-                    if (!ArgUtils.TryDequeueInt(arguments, m => ShowUsage(m, action), "--page-size", out int? pageSize))
+                    if (!argUtils.TryDequeueInt("--page-size", out int? pageSize))
                     {
                         return null;
                     }
@@ -129,40 +140,25 @@ public struct Args
                     break;
 
                 case "--page-limit":
-                    if (!ArgUtils.TryDequeueInt(arguments, m => ShowUsage(m, action), "--page-limit", out int? pageLimit))
+                    if (!argUtils.TryDequeueInt("--page-limit", out int? pageLimit))
                     {
                         return null;
                     }
                     argsData.PageLimit = pageLimit;
                     break;
 
-                case "--excluded-authors":
-                    if (!ArgUtils.TryDequeueStringArray(arguments, "--excluded-authors", out string[]? excludedAuthors))
-                    {
-                        return null;
-                    }
-                    argsData.ExcludedAuthors = excludedAuthors;
-                    break;
-
                 case "--retries":
-                    if (!ArgUtils.TryDequeueIntArray(arguments, m => ShowUsage(m, action), "--retries", out int[]? retries))
+                    if (!argUtils.TryDequeueIntArray("--retries", out int[]? retries))
                     {
                         return null;
                     }
                     argsData.Retries = retries;
                     break;
 
-                case "--label-prefix":
-                    if (!ArgUtils.TryDequeueLabelPrefix(arguments, m => ShowUsage(m, action), "--label-prefix", out Func<string, bool>? labelPredicate))
-                    {
-                        return null;
-                    }
-                    argsData.LabelPredicate = new(labelPredicate);
-                    break;
-
                 case "--verbose":
                     argsData.Verbose = true;
                     break;
+
                 default:
                     ShowUsage($"Unrecognized argument: {argument}", action);
                     return null;

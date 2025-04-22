@@ -17,9 +17,9 @@ using var provider = new ServiceCollection()
 
 var action = provider.GetRequiredService<ICoreService>();
 var config = Args.Parse(args, action);
-if (config is not Args argsData) return;
+if (config is not Args argsData) return 1;
 
-List<Task> tasks = [];
+List<Task<(Type ItemType, TestStats Stats)>> tasks = [];
 
 if (argsData.IssuesModelPath is not null)
 {
@@ -31,106 +31,111 @@ if (argsData.PullsModelPath is not null)
     tasks.Add(Task.Run(() => TestPullRequests()));
 }
 
-await Task.WhenAll(tasks);
+var (results, success) = await App.RunTasks(tasks, action);
+
+foreach (var (itemType, stats) in results)
+{
+    AlertType resultAlert = (stats.MatchesPercentage >= 0.65f && stats.MismatchesPercentage < 0.15f) ? AlertType.Note : AlertType.Warning;
+    action.Summary.AddAlert($"**{stats.Total}** items were tested with **{stats.MatchesPercentage:P2} matches** and **{stats.MismatchesPercentage:P2} mismatches**.", resultAlert);
+    action.Summary.AddRawMarkdown($"Testing complete. **{stats.Total}** items tested, with the following results.", true);
+    action.Summary.AddNewLine();
+
+    SummaryTableRow headerRow = new([
+        new("", Header: true),
+        new("Total", Header: true),
+        new("Matches", Header: true),
+        new("Mismatches", Header: true),
+        new("No Prediction", Header: true),
+        new("No Existing Label", Header: true)
+    ]);
+
+    SummaryTableRow countsRow = new([
+        new("Count", Header: true),
+        new($"{stats.Total}"),
+        new($"{stats.Matches}"),
+        new($"{stats.Mismatches}"),
+        new($"{stats.NoPrediction}"),
+        new($"{stats.NoExisting}")
+    ]);
+
+    SummaryTableRow percentageRow = new([
+        new("Percentage", Header: true),
+        new($""),
+        new($"{stats.MatchesPercentage:P2}"),
+        new($"{stats.MismatchesPercentage:P2}"),
+        new($"{stats.NoPredictionPercentage:P2}"),
+        new($"{stats.NoExistingPercentage:P2}")
+    ]);
+
+    action.Summary.AddMarkdownTable(new(headerRow, [countsRow, percentageRow]));
+    action.Summary.AddNewLine();
+    action.Summary.AddMarkdownList([
+        "**Matches**: The predicted label matches the existing label, including when no prediction is made and there is no existing label. Correct prediction.",
+        "**Mismatches**: The predicted label _does not match_ the existing label. Incorrect prediction.",
+        "**No Prediction**: No prediction was made, but the existing item had a label. Incorrect prediction.",
+        "**No Existing Label**: A prediction was made, but there was no existing label. Incorrect prediction."
+    ]);
+    action.Summary.AddNewLine();
+    action.Summary.AddAlert($"If the **Matches** percentage is **at least 65%** and the **Mismatches** percentage is **less than 15%**, the model testing is considered favorable.", AlertType.Tip);
+}
+
 await action.Summary.WriteAsync();
+return success ? 0 : 1;
 
-async IAsyncEnumerable<T> ReadData<T>(string dataPath, Func<ulong, string[], T> readLine, int? rowLimit)
+async Task<(Type, TestStats)> TestIssues()
 {
-    var allLines = File.ReadLinesAsync(dataPath);
-    ulong rowNum = 0;
-    rowLimit ??= 50000;
+    var predictor = GetPredictionEngine<Issue>(argsData.IssuesModelPath);
+    var stats = new TestStats();
 
-    await foreach (var line in allLines)
+    async IAsyncEnumerable<Issue> DownloadIssues(string githubToken, string repo)
     {
-        // Skip the header row
-        if (rowNum == 0)
+        await foreach (var result in GitHubApi.DownloadIssues(githubToken, argsData.Org, repo, argsData.LabelPredicate, argsData.IssuesLimit, argsData.PageSize, argsData.PageLimit, argsData.Retries, argsData.ExcludedAuthors, action))
         {
-            rowNum++;
-            continue;
-        }
-
-        string[] columns = line.Split('\t');
-        yield return readLine(rowNum, columns);
-
-        if ((int)rowNum++ >= rowLimit)
-        {
-            break;
+            yield return new(repo, result.Issue, argsData.LabelPredicate);
         }
     }
-}
 
-async IAsyncEnumerable<Issue> DownloadIssues(string githubToken, string org, string repo)
-{
-    await foreach (var result in GitHubApi.DownloadIssues(githubToken, org, repo, argsData.LabelPredicate, argsData.IssuesLimit, 100, 1000, [30, 30, 30], argsData.ExcludedAuthors ?? [], action))
-    {
-        yield return new(result.Issue, argsData.LabelPredicate);
-    }
-}
+    action.WriteInfo($"Testing issues from {argsData.Repos.Count} repositories.");
 
-async Task TestIssues()
-{
-    if (argsData.IssuesDataPath is not null)
+    foreach (var repo in argsData.Repos)
     {
-        var issueList = ReadData(argsData.IssuesDataPath, (num, columns) => new Issue()
+        action.WriteInfo($"Downloading and testing issues from {argsData.Org}/{repo}.");
+
+        await foreach (var issue in DownloadIssues(argsData.GitHubToken, repo))
         {
-            Number = num,
-            Label = columns[0],
-            Title = columns[1],
-            Body = columns[2]
-        }, argsData.IssuesLimit);
+            TestPrediction(issue, predictor, stats);
+        }
 
-        await TestPredictions(issueList, argsData.IssuesModelPath);
-        return;
+        action.WriteInfo($"Finished testing issues from {argsData.Org}/{repo}.");
     }
 
-    if (argsData.GithubToken is not null && argsData.Org is not null && argsData.Repos is not null)
-    {
-        foreach (var repo in argsData.Repos)
-        {
-            action.WriteInfo($"Downloading and testing issues from {argsData.Org}/{repo}.");
+    return (typeof(Issue), stats);
+}
 
-            var issueList = DownloadIssues(argsData.GithubToken, argsData.Org, repo);
-            await TestPredictions(issueList, argsData.IssuesModelPath);
+async Task<(Type, TestStats)> TestPullRequests()
+{
+    var predictor = GetPredictionEngine<PullRequest>(argsData.PullsModelPath);
+    var stats = new TestStats();
+
+    async IAsyncEnumerable<PullRequest> DownloadPullRequests(string githubToken, string repo)
+    {
+        await foreach (var result in GitHubApi.DownloadPullRequests(githubToken, argsData.Org, repo, argsData.LabelPredicate, argsData.PullsLimit, argsData.PageSize, argsData.PageLimit, argsData.Retries, argsData.ExcludedAuthors, action))
+        {
+            yield return new(repo, result.PullRequest, argsData.LabelPredicate);
         }
     }
-}
 
-async IAsyncEnumerable<PullRequest> DownloadPullRequests(string githubToken, string org, string repo)
-{
-    await foreach (var result in GitHubApi.DownloadPullRequests(githubToken, org, repo, argsData.LabelPredicate, argsData.PullsLimit, 25, 4000, [30, 30, 30], argsData.ExcludedAuthors ?? [], action))
+    foreach (var repo in argsData.Repos)
     {
-        yield return new(result.PullRequest, argsData.LabelPredicate);
-    }
-}
+        action.WriteInfo($"Downloading and testing pull requests from {argsData.Org}/{repo}.");
 
-async Task TestPullRequests()
-{
-    if (argsData.PullsDataPath is not null)
-    {
-        var pullList = ReadData(argsData.PullsDataPath, (num, columns) => new PullRequest()
+        await foreach (var pull in DownloadPullRequests(argsData.GitHubToken, repo))
         {
-            Number = num,
-            Label = columns[0],
-            Title = columns[1],
-            Body = columns[2],
-            FileNames = columns[3],
-            FolderNames = columns[4]
-        }, argsData.PullsLimit);
-
-        await TestPredictions(pullList, argsData.PullsModelPath);
-        return;
-    }
-
-    if (argsData.GithubToken is not null && argsData.Org is not null && argsData.Repos is not null)
-    {
-        foreach (var repo in argsData.Repos)
-        {
-            action.WriteInfo($"Downloading and testing pull requests from {argsData.Org}/{repo}.");
-
-            var pullList = DownloadPullRequests(argsData.GithubToken, argsData.Org, repo);
-            await TestPredictions(pullList, argsData.PullsModelPath);
+            TestPrediction(pull, predictor, stats);
         }
     }
+
+    return (typeof(PullRequest), stats);
 }
 
 static string GetStats(List<float> values)
@@ -148,109 +153,57 @@ static string GetStats(List<float> values)
     return $"{min} | {average} | {max} | {deviation}";
 }
 
-async Task TestPredictions<T>(IAsyncEnumerable<T> results, string modelPath) where T : Issue
+PredictionEngine<T, LabelPrediction> GetPredictionEngine<T>(string modelPath) where T : Issue
 {
     var context = new MLContext();
     var model = context.Model.Load(modelPath, out _);
-    var predictor = context.Model.CreatePredictionEngine<T, LabelPrediction>(model);
+
+    return context.Model.CreatePredictionEngine<T, LabelPrediction>(model);
+}
+
+void TestPrediction<T>(T result, PredictionEngine<T, LabelPrediction> predictor, TestStats stats) where T : Issue
+{
     var itemType = typeof(T) == typeof(PullRequest) ? "Pull Request" : "Issue";
 
-    int matches = 0;
-    int mismatches = 0;
-    int noPrediction = 0;
-    int noExisting = 0;
-    float total = 0;
+    (string? predictedLabel, float? score) = GetPrediction(
+        predictor,
+        result,
+        argsData.Threshold);
 
-    List<float> matchScores = [];
-    List<float> mismatchScores = [];
-
-    await foreach (var result in results)
+    if (predictedLabel is null && result.Label is not null)
     {
-        (string? predictedLabel, float? score) = GetPrediction(
-            predictor,
-            result,
-            argsData.Threshold);
+        stats.NoPrediction++;
+    }
+    else if (predictedLabel is not null && result.Label is null)
+    {
+        stats.NoExisting++;
+    }
+    else if (predictedLabel?.ToLower() == result.Label?.ToLower())
+    {
+        stats.Matches++;
 
-        if (predictedLabel is null && result.Label is not null)
+        if (score.HasValue)
         {
-            noPrediction++;
+            stats.MatchScores.Add(score.Value);
         }
-        else if (predictedLabel is not null && result.Label is null)
-        {
-            noExisting++;
-        }
-        else if (predictedLabel?.ToLower() == result.Label?.ToLower())
-        {
-            matches++;
+    }
+    else
+    {
+        stats.Mismatches++;
 
-            if (score.HasValue)
-            {
-                matchScores.Add(score.Value);
-            }
-        }
-        else
+        if (score.HasValue)
         {
-            mismatches++;
-
-            if (score.HasValue)
-            {
-                mismatchScores.Add(score.Value);
-            }
+            stats.MismatchScores.Add(score.Value);
         }
-
-        total = matches + mismatches + noPrediction + noExisting;
-        action.StartGroup($"{itemType} #{result.Number} - Predicted: {(predictedLabel ?? "<NONE>")} - Existing: {(result.Label ?? "<NONE>")}");
-        action.WriteInfo($"Matches      : {matches} ({(float)matches / total:P2}) - Min | Avg | Max | StdDev: {GetStats(matchScores)}");
-        action.WriteInfo($"Mismatches   : {mismatches} ({(float)mismatches / total:P2}) - Min | Avg | Max | StdDev: {GetStats(mismatchScores)}");
-        action.WriteInfo($"No Prediction: {noPrediction} ({(float)noPrediction / total:P2})");
-        action.WriteInfo($"No Existing  : {noExisting} ({(float)noExisting / total:P2})");
-        action.EndGroup();
     }
 
-    action.WriteInfo("Test Complete");
-
-    SummaryTableRow headerRow = new([
-        new("", Header: true),
-        new("Matches", Header: true),
-        new("Mismatches", Header: true),
-        new("No Prediction", Header: true),
-        new("No Existing Label", Header: true)
-    ]);
-
-    SummaryTableRow countsRow = new([
-        new("Count", Header: true, Alignment: TableColumnAlignment.Left),
-        new($"{matches}", Alignment: TableColumnAlignment.Right),
-        new($"{mismatches}", Alignment: TableColumnAlignment.Right),
-        new($"{noPrediction}", Alignment: TableColumnAlignment.Right),
-        new($"{noExisting}", Alignment: TableColumnAlignment.Right)
-    ]);
-
-    float matchPercentage = (float)matches / total;
-    float mismatchPercentage = (float)mismatches / total;
-
-    SummaryTableRow percentageRow = new([
-        new("Percentage", Header: true, Alignment: TableColumnAlignment.Left),
-        new($"{matchPercentage:P2}", Alignment: TableColumnAlignment.Right),
-        new($"{mismatchPercentage:P2}", Alignment: TableColumnAlignment.Right),
-        new($"{(float)noPrediction / total:P2}", Alignment: TableColumnAlignment.Right),
-        new($"{(float)noExisting / total:P2}", Alignment: TableColumnAlignment.Right)
-    ]);
-
-    AlertType resultAlert = (matchPercentage >= 0.65f && mismatchPercentage < 0.15f) ? AlertType.Note : AlertType.Warning;
-    action.Summary.AddAlert($"**{total}** items were tested with **{matchPercentage:P2} matches** and **{mismatchPercentage:P2} mismatches**. These results are considered favorable.", resultAlert);
-    action.Summary.AddRawMarkdown($"Testing complete. **{total}** items tested, with the following results.");
-    action.Summary.AddNewLine();
-    action.Summary.AddNewLine();
-    action.Summary.AddMarkdownTable(new(headerRow, [countsRow, percentageRow]));
-    action.Summary.AddNewLine();
-    action.Summary.AddMarkdownList([
-        "**Matches**: The predicted label matches the existing label, including when no prediction is made and there is no existing label. Correct prediction.",
-        "**Mismatches**: The predicted label _does not match_ the existing label. Incorrect prediction.",
-        "**No Prediction**: No prediction was made, but the existing item had a label. Incorrect prediction.",
-        "**No Existing Label**: A prediction was made, but there was no existing label. Incorrect prediction."
-    ]);
-    action.Summary.AddNewLine();
-    action.Summary.AddAlert($"If the **Matches** percentage is **at least 65%** and the **Mismatches** percentage is **less than 15%**, the model testing is considered favorable.", AlertType.Tip);
+    action.StartGroup($"{itemType} {argsData.Org}/{result.Repo}#{result.Number} - Predicted: {(predictedLabel ?? "<NONE>")} - Existing: {(result.Label ?? "<NONE>")}");
+    action.WriteInfo($"Total        : {stats.Total}");
+    action.WriteInfo($"Matches      : {stats.Matches} ({stats.MatchesPercentage:P2}) - Min | Avg | Max | StdDev: {GetStats(stats.MatchScores)}");
+    action.WriteInfo($"Mismatches   : {stats.Mismatches} ({stats.MismatchesPercentage:P2}) - Min | Avg | Max | StdDev: {GetStats(stats.MismatchScores)}");
+    action.WriteInfo($"No Prediction: {stats.NoPrediction} ({stats.NoPredictionPercentage:P2})");
+    action.WriteInfo($"No Existing  : {stats.NoExisting} ({stats.NoExistingPercentage:P2})");
+    action.EndGroup();
 }
 
 (string? PredictedLabel, float? PredictionScore) GetPrediction<T>(PredictionEngine<T, LabelPrediction> predictor, T issueOrPull, float? threshold) where T : Issue
@@ -260,7 +213,7 @@ async Task TestPredictions<T>(IAsyncEnumerable<T> results, string modelPath) whe
 
     if (prediction.Score is null || prediction.Score.Length == 0)
     {
-        action.WriteInfo($"No prediction was made for {itemType} #{issueOrPull.Number}.");
+        action.WriteInfo($"No prediction was made for {itemType} {argsData.Org}/{issueOrPull.Repo}#{issueOrPull.Number}.");
         return (null, null);
     }
 
@@ -277,4 +230,24 @@ async Task TestPredictions<T>(IAsyncEnumerable<T> results, string modelPath) whe
         .FirstOrDefault(p => threshold is null || p.Score >= threshold);
 
     return bestScore is not null ? (bestScore.Label, bestScore.Score) : ((string?)null, (float?)null);
+}
+
+class TestStats
+{
+    public TestStats() { }
+
+    public int Matches { get; set; } = 0;
+    public int Mismatches { get; set; } = 0;
+    public int NoPrediction { get; set; } = 0;
+    public int NoExisting { get; set; } = 0;
+
+    public float Total => Matches + Mismatches + NoPrediction + NoExisting;
+
+    public float MatchesPercentage => (float)Matches / Total;
+    public float MismatchesPercentage => (float)Mismatches / Total;
+    public float NoPredictionPercentage => (float)NoPrediction / Total;
+    public float NoExistingPercentage => (float)NoExisting / Total;
+
+    public List<float> MatchScores => [];
+    public List<float> MismatchScores => [];
 }

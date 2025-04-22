@@ -1,4 +1,4 @@
-name: Build and Test
+name: CI Build
 
 on:
   push:
@@ -24,6 +24,3 @@ jobs:
 
     - name: Build solution
       run: dotnet build IssueLabeler/ --configuration Release
-
-    - name: Run tests
-      run: dotnet test IssueLabeler/ --configuration Release --no-build --verbosity minimal

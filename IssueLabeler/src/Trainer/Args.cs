@@ -16,21 +16,16 @@ public struct Args
         // If you provide a path for issue data, you must also provide a path for the issue model, and vice versa.
         // If you provide a path for pull data, you must also provide a path for the pull model, and vice versa.
         // At least one pair of paths(either issue or pull) must be provided.
-        string executableName = Process.GetCurrentProcess().ProcessName;
-
         action.WriteNotice($$"""
             ERROR: Invalid or missing arguments.{{(message is null ? "" : " " + message)}}
 
-            Usage:
-              {{executableName}} [options]
+            Required for training the issues model:
+              --issues-data           Path to existing issue data file (TSV file).
+              --issues-model          Path to existing issue prediction model file (ZIP file).
 
-                Required for training the issues model:
-                  --issues-data       Path to existing issue data file (TSV file).
-                  --issues-model      Path for issue prediction model file to create (ZIP file).
-
-                Required for training the pull requests model:
-                  --pulls-data        Path to existing pull request data file (TSV file).
-                  --pulls-model       Path for pull request prediction model file to create (ZIP file).
+            Required for training the pull requests model:
+              --pulls-data            Path to existing pull request data file (TSV file).
+              --pulls-model           Path to existing pull request prediction model file (ZIP file).
             """);
 
         Environment.Exit(1);
@@ -38,9 +33,10 @@ public struct Args
 
     public static Args? Parse(string[] args, ICoreService action)
     {
+        Queue<string> arguments = new(args);
+        ArgUtils argUtils = new(action, ShowUsage, arguments);
         Args argsData = new();
 
-        Queue<string> arguments = new(args);
         while (arguments.Count > 0)
         {
             string argument = arguments.Dequeue();
@@ -48,7 +44,7 @@ public struct Args
             switch (argument)
             {
                 case "--issues-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-data", out string? IssuesDataPath))
+                    if (!argUtils.TryDequeuePath("--issues-data", out string? IssuesDataPath))
                     {
                         return null;
                     }
@@ -56,7 +52,7 @@ public struct Args
                     break;
 
                 case "--issues-model":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--issues-model", out string? IssuesModelPath))
+                    if (!argUtils.TryDequeuePath("--issues-model", out string? IssuesModelPath))
                     {
                         return null;
                     }
@@ -64,7 +60,7 @@ public struct Args
                     break;
 
                 case "--pulls-data":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-data", out string? PullsDataPath))
+                    if (!argUtils.TryDequeuePath("--pulls-data", out string? PullsDataPath))
                     {
                         return null;
                     }
@@ -72,7 +68,7 @@ public struct Args
                     break;
 
                 case "--pulls-model":
-                    if (!ArgUtils.TryDequeuePath(arguments, "--pulls-model", out string? PullsModelPath))
+                    if (!argUtils.TryDequeuePath("--pulls-model", out string? PullsModelPath))
                     {
                         return null;
                     }
