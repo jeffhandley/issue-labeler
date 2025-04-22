@@ -7,7 +7,6 @@ using Actions.Core;
 using Actions.Core.Extensions;
 using Actions.Core.Markdown;
 using Actions.Core.Services;
-using Actions.Core.Summaries;
 using GitHubClient;
 
 using var provider = new ServiceCollection()

@@ -40,7 +40,7 @@ static async Task CreateModel(string dataPath, string modelPath, ModelType type,
     if (!File.Exists(dataPath))
     {
         action.WriteNotice($"The data file '{dataPath}' does not exist.");
-        action.Summary.AddAlert("The data file does not exist. Training cannot proceed.", AlertType.Caution);
+        action.Summary.AddPersistent(summary => summary.AddAlert("The data file does not exist. Training cannot proceed.", AlertType.Caution));
         await action.Summary.WriteAsync();
 
         throw new InvalidOperationException($"The data file '{dataPath}' does not exist.");
@@ -50,13 +50,13 @@ static async Task CreateModel(string dataPath, string modelPath, ModelType type,
     if (recordsCounted < 10)
     {
         action.WriteNotice($"The data file '{dataPath}' does not contain enough data for training. A minimum of 10 records is required, but only {recordsCounted} exist.");
-        action.Summary.AddAlert($"Only {recordsCounted} items were found to be used for training. A minimum of 10 records is required. Cannot proceed with training.", AlertType.Caution);
+        action.Summary.AddPersistent(summary => summary.AddAlert($"Only {recordsCounted} items were found to be used for training. A minimum of 10 records is required. Cannot proceed with training.", AlertType.Caution));
         await action.Summary.WriteAsync();
 
         throw new InvalidOperationException($"The data file '{dataPath}' does not contain enough data for training. A minimum of 10 records is required, but only {recordsCounted} exist.");
     }
 
-    action.WriteInfo("Loading data into train/test sets...");
+    await action.WriteStatusAsync("Loading data into train/test sets...");
     MLContext mlContext = new();
 
     TextLoader.Column[] columns = type == ModelType.Issue ? [
@@ -88,7 +88,7 @@ static async Task CreateModel(string dataPath, string modelPath, ModelType type,
     var data = loader.Load(dataPath);
     var split = mlContext.Data.TrainTestSplit(data, testFraction: 0.2);
 
-    action.WriteInfo("Building pipeline...");
+    await action.WriteStatusAsync("Building pipeline...");
 
     var xf = mlContext.Transforms;
     var pipeline = xf.Conversion.MapValueToKey(inputColumnName: "Label", outputColumnName: "LabelKey")
@@ -100,21 +100,21 @@ static async Task CreateModel(string dataPath, string modelPath, ModelType type,
         .Append(mlContext.MulticlassClassification.Trainers.SdcaMaximumEntropy("LabelKey"))
         .Append(xf.Conversion.MapKeyToValue("PredictedLabel"));
 
-    action.WriteInfo("Fitting the model with the training data set...");
+    await action.WriteStatusAsync("Fitting the model with the training data set...");
     var trainedModel = pipeline.Fit(split.TrainSet);
     var testModel = trainedModel.Transform(split.TestSet);
 
-    action.WriteInfo("Evaluating against the test set...");
+    await action.WriteStatusAsync("Evaluating against the test set...");
     var metrics = mlContext.MulticlassClassification.Evaluate(testModel, labelColumnName: "LabelKey");
 
-    action.Summary.AddRawMarkdown($"""
+    action.Summary.AddPersistent(summary => summary.AddRawMarkdown($"""
         * MacroAccuracy: {metrics.MacroAccuracy:0.####} (a value between 0 and 1; the closer to 1, the better)
         * MicroAccuracy: {metrics.MicroAccuracy:0.####} (a value between 0 and 1; the closer to 1, the better)
         * LogLoss: {metrics.LogLoss:0.####} (the closer to 0, the better)
         {(metrics.PerClassLogLoss.Count() > 0 ? $"    * Class 1: {metrics.PerClassLogLoss[0]:0.####}" : "")}
         {(metrics.PerClassLogLoss.Count() > 1 ? $"    * Class 2: {metrics.PerClassLogLoss[1]:0.####}" : "")}
         {(metrics.PerClassLogLoss.Count() > 2 ? $"    * Class 3: {metrics.PerClassLogLoss[2]:0.####}" : "")}
-        """);
+        """));
 
     await action.Summary.WriteAsync();
 

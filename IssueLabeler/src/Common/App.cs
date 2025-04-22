@@ -1,5 +1,5 @@
-using Actions.Core.Services;
 using Actions.Core.Markdown;
+using Actions.Core.Services;
 
 public static class App
 {
@@ -16,13 +16,16 @@ public static class App
         {
             action.WriteError($"Exception occurred: {ex.Message}");
 
-            action.Summary.AddAlert("Exception occurred", AlertType.Caution);
-            action.Summary.AddNewLine();
-            action.Summary.AddNewLine();
-            action.Summary.AddMarkdownCodeBlock(ex.Message);
+            action.Summary.AddPersistent(summary =>
+            {
+                summary.AddAlert("Exception occurred", AlertType.Caution);
+                summary.AddNewLine();
+                summary.AddNewLine();
+                summary.AddMarkdownCodeBlock(ex.Message);
+            });
         }
 
-        await action.Summary.WriteAsync();
+        await action.Summary.WritePersistentAsync();
         return success;
     }
 

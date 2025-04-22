@@ -17,15 +17,15 @@ using var provider = new ServiceCollection()
 var action = provider.GetRequiredService<ICoreService>();
 if (Args.Parse(args, action) is not Args argsData) return 1;
 
-List<Task<(ModelType Type, ulong Number, bool Success, string[] Output)>> tasks = new();
+List<Task<(string Output, bool Success)>> tasks = new();
 
 if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
 {
-    action.WriteInfo($"Loading prediction engine for issues model: {argsData.IssuesModelPath}");
+    await action.WriteStatusAsync($"Loading prediction engine for issues model...");
     var issueContext = new MLContext();
     var issueModel = issueContext.Model.Load(argsData.IssuesModelPath, out _);
     var issuePredictor = issueContext.Model.CreatePredictionEngine<Issue, LabelPrediction>(issueModel);
-    action.WriteInfo($"Issues prediction engine ready.");
+    await action.WriteStatusAsync($"Issues prediction engine ready.");
 
     foreach (ulong issueNumber in argsData.Issues)
     {
@@ -54,17 +54,24 @@ if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
             argsData.Test
         )));
 
-        action.WriteInfo($"[Issue {argsData.Org}/{argsData.Repo}#{issueNumber}] Queued for prediction.");
+        if (argsData.Issues.Count == 1)
+        {
+            await action.WriteStatusAsync($"[Issue {argsData.Org}/{argsData.Repo}#{issueNumber}] Queued for prediction.");
+        }
+        else
+        {
+            action.WriteInfo($"[Issue {argsData.Org}/{argsData.Repo}#{issueNumber}] Queued for prediction.");
+        }
     }
 }
 
 if (argsData.PullsModelPath is not null && argsData.Pulls is not null)
 {
-    action.WriteInfo($"Loading prediction engine for pulls model: {argsData.IssuesModelPath}");
+    await action.WriteStatusAsync($"Loading prediction engine for pulls model...");
     var pullContext = new MLContext();
     var pullModel = pullContext.Model.Load(argsData.PullsModelPath, out _);
     var pullPredictor = pullContext.Model.CreatePredictionEngine<PullRequest, LabelPrediction>(pullModel);
-    action.WriteInfo($"Pulls prediction engine ready.");
+    await action.WriteStatusAsync($"Pulls prediction engine ready.");
 
     foreach (ulong pullNumber in argsData.Pulls)
     {
@@ -93,7 +100,14 @@ if (argsData.PullsModelPath is not null && argsData.Pulls is not null)
             argsData.Test
         )));
 
-        action.WriteInfo($"[Pull Request {argsData.Org}/{argsData.Repo}#{pullNumber}] Queued for prediction.");
+        if (argsData.Pulls.Count == 1)
+        {
+            await action.WriteStatusAsync($"[Pull Request {argsData.Org}/{argsData.Repo}#{pullNumber}] Queued for prediction.");
+        }
+        else
+        {
+            action.WriteInfo($"[Pull Request {argsData.Org}/{argsData.Repo}#{pullNumber}] Queued for prediction.");
+        }
     }
 }
 
@@ -101,33 +115,37 @@ var (predictionResults, success) = await App.RunTasks(tasks, action);
 
 foreach (var prediction in predictionResults)
 {
-    string predictionResult = $"""
-        [{prediction.Type} {argsData.Org}/{argsData.Repo}#{prediction.Number}{(prediction.Success ? "" : " FAILURE")}]
-          {string.Join("\n  ", prediction.Output)}
-        """;
-
-    action.WriteNotice(predictionResult);
+    action.WriteNotice(prediction.Output);
 
     if (!prediction.Success)
     {
-        action.Summary.AddAlert(predictionResult, AlertType.Warning);
+        action.Summary.AddPersistent(summary => summary.AddAlert(prediction.Output, AlertType.Warning));
     }
+
+    await action.WriteStatusAsync(prediction.Output);
 }
 
-await action.Summary.WriteAsync();
+await action.Summary.WritePersistentAsync();
 return success ? 0 : 1;
 
-async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEngine<T, LabelPrediction> predictor, ulong number, T issueOrPull, Func<string, bool> labelPredicate, string? defaultLabel, ModelType type, int[] retries, bool test) where T : Issue
+async Task<(string, bool)> ProcessPrediction<T>(PredictionEngine<T, LabelPrediction> predictor, ulong number, T issueOrPull, Func<string, bool> labelPredicate, string? defaultLabel, ModelType type, int[] retries, bool test) where T : Issue
 {
     List<string> output = new();
     string? error = null;
-
     string typeName = type == ModelType.PullRequest ? "Pull Request" : "Issue";
+
+    string FormatOutput(string status) => $"""
+        [{typeName} {argsData.Org}/{argsData.Repo}#{number}] {status}
+          {string.Join("\n  ", output)}
+        """;
 
     if (issueOrPull.HasMoreLabels)
     {
-        output.Add($"[{typeName} {argsData.Org}/{argsData.Repo}#{number}] No action taken. Too many labels applied already; cannot be sure no applicable label is already applied.");
-        return (type, number, true, output.ToArray());
+        return
+        (
+            FormatOutput("No action taken. Too many labels applied already; cannot be sure no applicable label is already applied."),
+            true
+        );
     }
 
     var applicableLabel = issueOrPull.Labels?.FirstOrDefault(labelPredicate);
@@ -150,15 +168,22 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
             output.Add(error ?? $"Removed default label '{defaultLabel}'.");
         }
 
-        return (type, number, error is null, output.ToArray());
+        return
+        (
+            FormatOutput("No prediction needed."),
+            error is null
+        );
     }
 
     var prediction = predictor.Predict(issueOrPull);
 
     if (prediction.Score is null || prediction.Score.Length == 0)
     {
-        output.Add("No prediction was made.");
-        return (type, number, true, output.ToArray());
+        return
+        (
+            FormatOutput("No prediction was made."),
+            true
+        );
     }
 
     VBuffer<ReadOnlyMemory<char>> labels = default;
@@ -195,7 +220,11 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
 
         if (error is not null)
         {
-            return (type, number, false, output.ToArray());
+            return
+            (
+                FormatOutput("Error occurred during prediction"),
+                false
+            );
         }
 
         if (hasDefaultLabel && defaultLabel is not null)
@@ -208,7 +237,11 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
             output.Add(error ?? $"Removed default label '{defaultLabel}'");
         }
 
-        return (type, number, error is null, output.ToArray());
+        return
+        (
+            FormatOutput($"Predicted: {bestScore.Label}"),
+            error is null
+        );
     }
 
     if (defaultLabel is not null)
@@ -228,5 +261,9 @@ async Task<(ModelType, ulong, bool, string[])> ProcessPrediction<T>(PredictionEn
         }
     }
 
-    return (type, number, error is null, output.ToArray());
+    return
+    (
+        FormatOutput(error is null ? "Prediction complete" : " Error occurred during prediction"),
+        error is null
+    );
 }

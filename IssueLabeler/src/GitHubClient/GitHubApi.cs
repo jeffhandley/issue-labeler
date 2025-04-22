@@ -131,7 +131,7 @@ public class GitHubApi
 
                 if (retry >= retries.Length - 1)
                 {
-                    action.WriteError($"Retry limit of {retries.Length} reached. Aborting.");
+                    await action.WriteStatusAsync($"Retry limit of {retries.Length} reached. Aborting.");
 
                     throw new ApplicationException($"""
                         Retry limit of {retries.Length} reached. Aborting.
@@ -146,7 +146,7 @@ public class GitHubApi
                 }
                 else
                 {
-                    action.WriteInfo($"Waiting {retries[retry]} seconds before retry {retry + 1} of {retries.Length}...");
+                    await action.WriteStatusAsync($"Waiting {retries[retry]} seconds before retry {retry + 1} of {retries.Length}...");
                     await Task.Delay(retries[retry] * 1000);
                     retry++;
 
@@ -206,19 +206,21 @@ public class GitHubApi
 
             finished = (!hasNextPage || pageNumber >= pageLimit || (itemLimit.HasValue && includedCount >= itemLimit));
 
-            action.WriteInfo(
+            await action.WriteStatusAsync(
                 $"Saved for Training: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")}) | " +
                 $"Items Downloaded: {loadedCount} (total: {totalCount}) | " +
                 $"Pages Downloaded: {pageNumber} (limit: {pageLimit})");
 
             if (finished)
             {
-                action.Summary.AddRawMarkdown($"Finishing downloading {typeNames} from **{org}/{repo}:", true);
-                action.Summary.AddMarkdownList([
-                    $"Pages Downloaded: {pageNumber} (limit: {pageLimit})",
-                    $"Items Downloaded: {loadedCount} (total: {totalCount})",
-                    $"Saved for Training: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")})"
-                ]);
+                action.Summary.AddPersistent(summary => {
+                    summary.AddRawMarkdown($"Finishing downloading {typeNames} from **{org}/{repo}:", true);
+                    summary.AddMarkdownList([
+                        $"Pages Downloaded: {pageNumber} (limit: {pageLimit})",
+                        $"Items Downloaded: {loadedCount} (total: {totalCount})",
+                        $"Saved for Training: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")})"
+                    ]);
+                });
             }
         }
         while (!finished);
