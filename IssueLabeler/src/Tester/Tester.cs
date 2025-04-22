@@ -39,26 +39,27 @@ foreach (var (itemType, stats) in results)
 
     action.Summary.AddPersistent(summary =>
     {
+        summary.AddMarkdownHeading($"Finished Testing {(itemType == typeof(PullRequest) ? "Pull Requests" : "Issues")} from {argsData.Org}/{itemType.Name}", 2);
         summary.AddAlert($"**{stats.Total}** items were tested with **{stats.MatchesPercentage:P2} matches** and **{stats.MismatchesPercentage:P2} mismatches**.", resultAlert);
         summary.AddRawMarkdown($"Testing complete. **{stats.Total}** items tested, with the following results.", true);
         summary.AddNewLine();
 
         SummaryTableRow headerRow = new([
             new("", Header: true),
-            new("Total", Header: true),
-            new("Matches", Header: true),
-            new("Mismatches", Header: true),
-            new("No Prediction", Header: true),
-            new("No Existing Label", Header: true)
+            new("Total", Header: true, Alignment: TableColumnAlignment.Right),
+            new("Matches", Header: true, Alignment: TableColumnAlignment.Right),
+            new("Mismatches", Header: true, Alignment: TableColumnAlignment.Right),
+            new("No Prediction", Header: true, Alignment: TableColumnAlignment.Right),
+            new("No Existing Label", Header: true, Alignment: TableColumnAlignment.Right)
         ]);
 
         SummaryTableRow countsRow = new([
-            new("Count", Header: true),
-            new($"{stats.Total}"),
-            new($"{stats.Matches}"),
-            new($"{stats.Mismatches}"),
-            new($"{stats.NoPrediction}"),
-            new($"{stats.NoExisting}")
+            new("Count"),
+            new($"{stats.Total:N0}"),
+            new($"{stats.Matches:N0}"),
+            new($"{stats.Mismatches:N0}"),
+            new($"{stats.NoPrediction:N0}"),
+            new($"{stats.NoExisting:N0}")
         ]);
 
         SummaryTableRow percentageRow = new([
@@ -110,7 +111,7 @@ async Task<(Type, TestStats)> TestIssues()
             TestPrediction(issue, predictor, stats);
         }
 
-        await action.WriteStatusAsync($"Finished testing issues from {argsData.Org}/{repo}.");
+        await action.WriteStatusAsync($"Finished Testing Issues from {argsData.Org}/{repo}.");
     }
 
     return (typeof(Issue), stats);
@@ -138,7 +139,7 @@ async Task<(Type, TestStats)> TestPullRequests()
             TestPrediction(pull, predictor, stats);
         }
 
-        await action.WriteStatusAsync($"Finished testing pull requests from {argsData.Org}/{repo}.");
+        await action.WriteStatusAsync($"Finished Testing Pull Requests from {argsData.Org}/{repo}.");
     }
 
     return (typeof(PullRequest), stats);

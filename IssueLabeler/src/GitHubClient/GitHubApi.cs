@@ -207,18 +207,18 @@ public class GitHubApi
             finished = (!hasNextPage || pageNumber >= pageLimit || (itemLimit.HasValue && includedCount >= itemLimit));
 
             await action.WriteStatusAsync(
-                $"Saved for Training: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")}) | " +
+                $"Items to Include: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")}) | " +
                 $"Items Downloaded: {loadedCount} (total: {totalCount}) | " +
                 $"Pages Downloaded: {pageNumber} (limit: {pageLimit})");
 
             if (finished)
             {
                 action.Summary.AddPersistent(summary => {
-                    summary.AddRawMarkdown($"Finishing downloading {typeNames} from **{org}/{repo}:", true);
+                    summary.AddMarkdownHeading($"Finished Downloading {typeNames} from {org}/{repo}", 2);
                     summary.AddMarkdownList([
-                        $"Pages Downloaded: {pageNumber} (limit: {pageLimit})",
+                        $"Items to Include: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")})",
                         $"Items Downloaded: {loadedCount} (total: {totalCount})",
-                        $"Saved for Training: {includedCount} (limit: {(itemLimit.HasValue ? itemLimit : "none")})"
+                        $"Pages Downloaded: {pageNumber} (limit: {pageLimit})"
                     ]);
                 });
             }
