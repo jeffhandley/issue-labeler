@@ -1,10 +1,6 @@
-name: "Labeler: Prediction"
+name: "Labeler: Predict (Pulls)"
 
 on:
-  # Only automatically predict area labels when issues are originally opened
-  issues:
-    types: opened
-
   # Per to the following documentation:
   # https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#pull_request_target
   #
@@ -21,14 +17,10 @@ on:
   # Allow dispatching the workflow via the Actions UI, specifying ranges of numbers
   workflow_dispatch:
     inputs:
-      issues:
-        description: "Issue Numbers (comma-separated list of ranges)"
-        type: string
-
       pulls:
         description: "Pull Numbers (comma-separated list of ranges)"
         type: string
-
+        required: true
       cache_key:
         description: "The cache key suffix to use for loading the model"
         type: string
@@ -42,46 +34,22 @@ env:
   EXCLUDED_AUTHORS: null
 
 jobs:
-  issues:
+  predict-pull-label:
     # Do not run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == 'jeffhandley' && (inputs.issues || github.event.issue.number) }}
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-    steps:
-      - name: "Restore issues model from cache"
-        if: ${{ inputs.issues || github.event_name == 'issues' }}
-        uses: jeffhandley/issue-labeler/restore@main
-        with:
-          type: issues
-
-      - name: "Predict issue labels"
-        if: ${{ inputs.issues || github.event_name == 'issues' }}
-        uses: jeffhandley/issue-labeler/predict@main
-        with:
-          issues:           ${{ inputs.issues || github.event.issue.number }}
-          label_prefix:     ${{ env.LABEL_PREFIX }}
-          threshold:        ${{ env.THRESHOLD }}
-          default_label:    ${{ env.DEFAULT_LABEL }}
-          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
-        env:
-          GITHUB_TOKEN:  ${{ github.token }}
-
-  pulls:
-    # Do not run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == 'jeffhandley' && (inputs.pulls || github.event.number) }}
+    if: ${{ github.repository_owner == 'jeffhandley' }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
       - name: "Restore pulls model from cache"
-        if: ${{ inputs.pulls || github.event_name == 'pull_request_target' }}
+        id: restore-pulls-model
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: pulls
+          fail-on-cache-miss: ${{ github.event_name == 'workflow_dispatch '}}
 
       - name: "Predict pull labels"
-        if: ${{ inputs.pulls || github.event_name == 'pull_request_target' }}
+        if: ${{ steps.restore-pulls-model.outputs.cache-hit == 'true' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           pulls:            ${{ inputs.pulls || github.event.number }}
@@ -91,3 +59,4 @@ jobs:
           excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
         env:
           GITHUB_TOKEN:  ${{ github.token }}
+        continue-on-error: ${{ github.event_name == 'pull_request_target' }}
