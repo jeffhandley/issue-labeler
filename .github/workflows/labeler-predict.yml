@@ -54,9 +54,10 @@ jobs:
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: issues
+        continue-on-error: ${{ github.event_name != 'workflow_dispatch' }}
 
       - name: "Predict issue labels"
-        if: ${{ inputs.issues || github.event_name == 'issues' }}
+        if: ${{ (inputs.issues || github.event_name == 'issues') && steps.restore-pulls-model.outputs.restored == 'true' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           issues:           ${{ inputs.issues || github.event.issue.number }}
@@ -75,13 +76,15 @@ jobs:
       pull-requests: write
     steps:
       - name: "Restore pulls model from cache"
+        id: restore-pulls-model
         if: ${{ inputs.pulls || github.event_name == 'pull_request_target' }}
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: pulls
+        continue-on-error: ${{ github.event_name != 'workflow_dispatch' }}
 
       - name: "Predict pull labels"
-        if: ${{ inputs.pulls || github.event_name == 'pull_request_target' }}
+        if: ${{ (inputs.pulls || github.event_name == 'pull_request_target') && steps.restore-pulls-model.outputs.restored == 'true' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           pulls:            ${{ inputs.pulls || github.event.number }}
@@ -91,3 +94,4 @@ jobs:
           excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
         env:
           GITHUB_TOKEN:  ${{ github.token }}
+        continue-on-error: ${{ github.event_name != 'workflow_dispatch' }}
