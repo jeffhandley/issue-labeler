@@ -94,4 +94,9 @@ runs:
       run: |
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "## ${{ inputs.type == 'issues' && 'Issues' || 'Pull Requests' }} Model Available as \`${{ inputs.model_cache_key }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "The \`${{ inputs.model_cache_key }}\` model is saved to cache and available to test or promote." >> $GITHUB_STEP_SUMMARY
+
+        if [[ "${{ inputs.model_cache_key }}" == "ACTIVE" ]]; then
+          echo "Label predictions will now use this model." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "The \`${{ inputs.model_cache_key }}\` model is saved to cache and available to test or promote." >> $GITHUB_STEP_SUMMARY
+        fi

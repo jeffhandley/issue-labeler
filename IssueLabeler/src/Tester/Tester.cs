@@ -38,7 +38,7 @@ foreach (var (itemType, stats) in results)
 
     action.Summary.AddPersistent(summary =>
     {
-        summary.AddMarkdownHeading($"Finished Testing {(itemType == typeof(PullRequest) ? "Pull Requests" : "Issues")} from {argsData.Org}/{itemType.Name}", 2);
+        summary.AddMarkdownHeading($"Finished Testing {(itemType == typeof(PullRequest) ? "Pull Requests" : "Issues")} from {argsData.Org}/{argsData.Repo}", 2);
         summary.AddAlert($"**{stats.Total}** items were tested with **{stats.MatchesPercentage:P2} matches** and **{stats.MismatchesPercentage:P2} mismatches**.", resultAlert);
         summary.AddRawMarkdown($"Testing complete. **{stats.Total}** items tested, with the following results.", true);
         summary.AddNewLine();
@@ -79,7 +79,7 @@ foreach (var (itemType, stats) in results)
             "**No Existing Label**: A prediction was made, but there was no existing label. Incorrect prediction."
         ]);
         summary.AddNewLine();
-        summary.AddAlert($"If the **Matches** percentage is **at least 65%** and the **Mismatches** percentage is **less than 15%**, the model testing is considered favorable.", AlertType.Tip);
+        summary.AddAlert($"If the **Matches** percentage is **at least 65%** and the **Mismatches** percentage is **less than 10%**, the model testing is considered favorable.", AlertType.Tip);
     });
 }
 
