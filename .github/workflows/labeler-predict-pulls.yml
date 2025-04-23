@@ -42,14 +42,14 @@ jobs:
       pull-requests: write
     steps:
       - name: "Restore pulls model from cache"
-        id: restore-pulls-model
+        id: restore-model
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: pulls
           fail-on-cache-miss: ${{ github.event_name == 'workflow_dispatch' }}
 
       - name: "Predict pull labels"
-        if: ${{ steps.restore-pulls-model.outputs.cache-hit == 'true' }}
+        if: ${{ steps.restore-model.outputs.cache-hit == 'true' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           pulls:            ${{ inputs.pulls || github.event.number }}

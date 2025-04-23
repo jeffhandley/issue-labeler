@@ -33,13 +33,14 @@ jobs:
       issues: write
     steps:
       - name: "Restore issues model from cache"
+        id: restore-model
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: issues
           fail-on-cache-miss: ${{ github.event_name == 'workflow_dispatch' }}
 
       - name: "Predict issue labels"
-        if: ${{ steps.restore-pulls-model.outputs.cache-hit == 'true' }}
+        if: ${{ steps.restore-model.outputs.cache-hit == 'true' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           issues:           ${{ inputs.issues || github.event.issue.number }}

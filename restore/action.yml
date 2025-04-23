@@ -14,6 +14,11 @@ inputs:
   fail-on-cache-miss:
     description: "By default, the job will not fail on a cache miss. Set to true to force failure."
 
+outputs:
+  cache-hit:
+    description: "A boolean value indicating whether the model was successfully restored from cache."
+    value: ${{ steps.restore-cache.outputs.cache-hit }}
+
 branding:
   color: "purple"
   icon: "arrow-down"
@@ -40,27 +45,23 @@ runs:
         fail-on-cache-miss: false
 
     - name: "Produce success output"
-      if: ${{ steps.restore-cache.outputs.cache-hit == 'true' }}
       shell: bash
       run: |
-        echo "cache-hit=true" >> $GITHUB_OUTPUT
-        echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
-        echo "> The ${{ inputs.type }} model was successfully restored from cache." >> $GITHUB_STEP_SUMMARY
+        if [[ "${{ steps.restore-cache.outputs.cache-hit }}" == "true" ]]; then
+          echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
+          echo "> The ${{ inputs.type }} model was successfully restored from cache." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
+          echo "> The ${{ inputs.type }} model was not restored from cache. Label prediction cannot proceed." >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ inputs.fail-on-cache-miss }}" != "true" ]]; then
+            echo "> The workflow is gracefully exiting without failure." >> $GITHUB_STEP_SUMMARY
+          fi
+        fi
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "> [!TIP]" >> $GITHUB_STEP_SUMMARY
         echo "> Refer to the [GitHub documentation](https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows#usage-limits-and-eviction-policy) for more information about cache retention policies." >> $GITHUB_STEP_SUMMARY
 
-    - name: "Produce failure output"
-      if: ${{ steps.restore-cache.outputs.cache-hit != 'true' }}
-      shell: bash
-      run: |
-        echo "cache-hit=false" >> $GITHUB_OUTPUT
-        echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
-        echo "> The ${{ inputs.type }} model failed to restore from cache. Label prediction cannot proceed." >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "> [!TIP]" >> $GITHUB_STEP_SUMMARY
-        echo "> Refer to the [GitHub documentation](https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows#usage-limits-and-eviction-policy) for more information about cache retention policies." >> $GITHUB_STEP_SUMMARY
-
-        if [[ "${{ inputs.fail-on-cache-miss }}" == "true" ]]; then
+        if [[ "${{ steps.restore-cache.outputs.cache-hit }}" != "true" && "${{ inputs.fail-on-cache-miss }}" == "true" ]]; then
           exit 1
         fi
