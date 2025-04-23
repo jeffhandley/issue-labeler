@@ -38,7 +38,7 @@ foreach (var (itemType, stats) in results)
 
     action.Summary.AddPersistent(summary =>
     {
-        summary.AddMarkdownHeading($"Finished Testing {(itemType == typeof(PullRequest) ? "Pull Requests" : "Issues")} from {argsData.Org}/{argsData.Repo}", 2);
+        summary.AddMarkdownHeading($"Finished Testing {(itemType == typeof(PullRequest) ? "Pull Requests" : "Issues")}", 2);
         summary.AddAlert($"**{stats.Total}** items were tested with **{stats.MatchesPercentage:P2} matches** and **{stats.MismatchesPercentage:P2} mismatches**.", resultAlert);
         summary.AddRawMarkdown($"Testing complete. **{stats.Total}** items tested, with the following results.", true);
         summary.AddNewLine();
