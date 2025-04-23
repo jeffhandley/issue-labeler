@@ -40,6 +40,7 @@ jobs:
           fail-on-cache-miss: ${{ github.event_name == 'workflow_dispatch' }}
 
       - name: "Predict issue labels"
+        id: prediction
         if: ${{ steps.restore-model.outputs.cache-hit == 'true' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
@@ -51,3 +52,10 @@ jobs:
         env:
           GITHUB_TOKEN:  ${{ github.token }}
         continue-on-error: ${{ github.event_name == 'issues' }}
+
+      - name: "Show prediction"
+        if: ${{ steps.restore-model.outputs.cache-hit == 'true' && github.event_name == 'issues' }}
+        shell: bash
+        run: |
+          echo "Predicted Label: ${{ steps.prediction.outputs.label }}" >> $GITHUB_STEP_SUMMARY
+          echo "Prediction Score: ${{ steps.prediction.outputs.score }}" >> $GITHUB_STEP_SUMMARY
