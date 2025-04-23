@@ -36,7 +36,7 @@ runs:
       run: |
         if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
           echo "::error::'type' must be either 'issues' or 'pulls'. Value provided: '${{ inputs.type }}'"
-          echo ":x: **ERROR**" >> $GITHUB_STEP_SUMMARY
+          echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
           echo "\`type\` must be either 'issues' or 'pulls'." >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
@@ -58,8 +58,8 @@ runs:
       run: |
         if [[ "${{ steps.check-cache.outputs.cache-hit }}" == "true" ]]; then
           echo "::error::Cache key '${{ env.CACHE_KEY }}' already exists. Cannot proceed with downloading."
-          echo ":x: **ERROR**" >> $GITHUB_STEP_SUMMARY
-          echo "Cache key \`${{ env.CACHE_KEY }}\` already exists. Cannot proceed with downloading." >> $GITHUB_STEP_SUMMARY
+          echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
+          echo "> Cache key \`${{ env.CACHE_KEY }}\` already exists. Cannot proceed with downloading." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "> [!TIP]" >> $GITHUB_STEP_SUMMARY
           echo "> Either use a different \`cache_key\` value or delete the existing cache entry from the [Action Caches](/${{ github.repository }}/actions/caches) page and run the workflow again." >> $GITHUB_STEP_SUMMARY

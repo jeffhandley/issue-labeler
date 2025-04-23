@@ -31,7 +31,7 @@ runs:
       run: |
         if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
           echo "::error::'type' must be either 'issues' or 'pulls'. Value provided: '${{ inputs.type }}'"
-          echo ":x: **ERROR**" >> $GITHUB_STEP_SUMMARY
+          echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
           echo "\`type\` must be either 'issues' or 'pulls'." >> $GITHUB_STEP_SUMMARY
           exit 1
         fi

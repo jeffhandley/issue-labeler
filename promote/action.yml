@@ -24,21 +24,21 @@ runs:
       run: |
         if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
           echo "::error::'type' must be either 'issues' or 'pulls'. Value provided: '${{ inputs.type }}'"
-          echo ":x: **ERROR**" >> $GITHUB_STEP_SUMMARY
+          echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
           echo "\`type\` must be either 'issues' or 'pulls'." >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
 
         if [[ -z "${{ inputs.staged_key }}" || ! "${{ inputs.staged_key }}" =~ ^[a-zA-Z0-9/_\-]+$ ]]; then
           echo "::error::'staged_key' must be non-empty and contain only alphanumeric characters, hyphens, underscores, or slashes. Value provided: '${{ inputs.staged_key }}'"
-          echo ":x: **ERROR**" >> $GITHUB_STEP_SUMMARY
+          echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
           echo "\`staged_key\` must be non-empty and contain only alphanumeric characters, hyphens, underscores, or slashes. Value provided: '${{ inputs.staged_key }}'" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
 
         if [[ -z "${{ inputs.backup_key }}" || ! "${{ inputs.backup_key }}" =~ ^[a-zA-Z0-9/_\-]+$ ]]; then
           echo "::error::'backup_key' must be non-empty and contain only alphanumeric characters, hyphens, underscores, or slashes. Value provided: '${{ inputs.backup_key }}'"
-          echo ":x: **ERROR**" >> $GITHUB_STEP_SUMMARY
+          echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
           echo "\`backup_key\` must be non-empty and contain only alphanumeric characters, hyphens, underscores, or slashes. Value provided: '${{ inputs.backup_key }}'" >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
@@ -91,7 +91,7 @@ runs:
       shell: bash
       run: |
         echo "::error::Backup cache key '${{ env.BACKUP_KEY }}' already exists. Cannot proceed with promotion."
-        echo ":x: **ERROR**" >> $GITHUB_STEP_SUMMARY
+        echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
         echo "Backup cache key \`${{ env.BACKUP_KEY }}\` already exists. Cannot proceed with promotion." >> $GITHUB_STEP_SUMMARY
         echo ""  >> $GITHUB_STEP_SUMMARY
         echo "> [!TIP]" >> $GITHUB_STEP_SUMMARY
