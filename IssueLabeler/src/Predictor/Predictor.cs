@@ -16,7 +16,7 @@ using var provider = new ServiceCollection()
 var action = provider.GetRequiredService<ICoreService>();
 if (Args.Parse(args, action) is not Args argsData) return 1;
 
-List<Task<(string Output, bool Success)>> tasks = new();
+List<Task<(string Output, bool Success, string? Label, float? Score)>> tasks = new();
 
 if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
 {
@@ -124,10 +124,16 @@ foreach (var prediction in predictionResults)
     await action.WriteStatusAsync(prediction.Output);
 }
 
+if (predictionResults.Count() == 1)
+{
+    await action.SetOutputAsync("label", predictionResults[0].Label);
+    await action.SetOutputAsync("score", predictionResults[0].Score);
+}
+
 await action.Summary.WritePersistentAsync();
 return success ? 0 : 1;
 
-async Task<(string, bool)> ProcessPrediction<T>(PredictionEngine<T, LabelPrediction> predictor, ulong number, T issueOrPull, Func<string, bool> labelPredicate, string? defaultLabel, ModelType type, int[] retries, bool test) where T : Issue
+async Task<(string, bool, string?, float?)> ProcessPrediction<T>(PredictionEngine<T, LabelPrediction> predictor, ulong number, T issueOrPull, Func<string, bool> labelPredicate, string? defaultLabel, ModelType type, int[] retries, bool test) where T : Issue
 {
     List<string> output = new();
     string? error = null;
@@ -143,7 +149,9 @@ async Task<(string, bool)> ProcessPrediction<T>(PredictionEngine<T, LabelPredict
         return
         (
             FormatOutput("No action taken. Too many labels applied already; cannot be sure no applicable label is already applied."),
-            true
+            true,
+            null,
+            null
         );
     }
 
@@ -170,7 +178,9 @@ async Task<(string, bool)> ProcessPrediction<T>(PredictionEngine<T, LabelPredict
         return
         (
             FormatOutput("No prediction needed."),
-            error is null
+            error is null,
+            null,
+            null
         );
     }
 
@@ -181,7 +191,9 @@ async Task<(string, bool)> ProcessPrediction<T>(PredictionEngine<T, LabelPredict
         return
         (
             FormatOutput("No prediction was made."),
-            true
+            true,
+            null,
+            null
         );
     }
 
@@ -222,7 +234,9 @@ async Task<(string, bool)> ProcessPrediction<T>(PredictionEngine<T, LabelPredict
             return
             (
                 FormatOutput("Error occurred during prediction"),
-                false
+                false,
+                bestScore.Label,
+                bestScore.Score
             );
         }
 
@@ -239,7 +253,9 @@ async Task<(string, bool)> ProcessPrediction<T>(PredictionEngine<T, LabelPredict
         return
         (
             FormatOutput($"Predicted: {bestScore.Label}"),
-            error is null
+            error is null,
+            bestScore.Label,
+            bestScore.Score
         );
     }
 
@@ -258,11 +274,21 @@ async Task<(string, bool)> ProcessPrediction<T>(PredictionEngine<T, LabelPredict
 
             output.Add(error ?? $"Applied default label '{defaultLabel}'.");
         }
+
+        return
+        (
+            FormatOutput($"Applied default label: {defaultLabel}"),
+            error is null,
+            defaultLabel,
+            null
+        );
     }
 
     return
     (
-        FormatOutput(error is null ? "Prediction complete" : " Error occurred during prediction"),
-        error is null
+        FormatOutput(error is null ? "Prediction processing complete" : " Error occurred during prediction"),
+        error is null,
+        null,
+        null
     );
 }

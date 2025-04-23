@@ -25,6 +25,12 @@ inputs:
   verbose:
     description: "Enable verbose output."
 
+outputs:
+  label:
+    description: "The label applied, which could be a predicted label or the default label if no prediction met the threshold."
+  score:
+    description: "The score of the predicted label, or null if no prediction met the threshold."
+
 branding:
   color: "purple"
   icon: "tag"
