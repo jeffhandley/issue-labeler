@@ -14,6 +14,10 @@ inputs:
   fail-on-cache-miss:
     description: "Set to 'true' to fail the job if the model cannot be restored from cache. Defaults to 'false'."
 
+  quiet:
+    description: "Set to 'true' to suppress output into the GitHub action summary. Defaults to 'false'."
+
+
 outputs:
   cache-hit:
     description: "A string value ('true' or 'false') indicating whether the model was successfully restored from cache."
@@ -45,6 +49,7 @@ runs:
         fail-on-cache-miss: false
 
     - name: "Produce Success Output"
+      if: ${{ inputs.quiet != 'true' }}
       shell: bash
       run: |
         if [[ "${{ steps.restore-cache.outputs.cache-hit }}" == "true" ]]; then

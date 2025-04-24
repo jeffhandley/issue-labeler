@@ -51,6 +51,7 @@ jobs:
         with:
           type: pulls
           fail-on-cache-miss: ${{ env.ALLOW_FAILURE }}
+          quiet: true
 
       - name: "Predict pull labels"
         id: prediction

@@ -42,6 +42,7 @@ jobs:
         with:
           type: issues
           fail-on-cache-miss: ${{ env.ALLOW_FAILURE }}
+          quiet: true
 
       - name: "Predict issue labels"
         id: prediction
