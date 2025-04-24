@@ -11,39 +11,76 @@ public class ArgUtils
     private Action<string?> showUsage;
     private Queue<string>? arguments { get; }
 
+    /// <summary>
+    /// Create an arguments utility class instance for a GitHub action, with input values retrieved from the GitHub action.
+    /// </summary>
+    /// <param name="action">The GitHub action service.</param>
+    /// <param name="showUsage">A method to show usage information for the application.</param>
     public ArgUtils(ICoreService action, Action<string?, ICoreService> showUsage)
     {
         this.action = action;
         this.showUsage = message => showUsage(message, action);
     }
 
+    /// <summary>
+    /// Create an arguments utility class instance for a GitHub action, with input values retrieved from a queue of command-line arguments.
+    /// </summary>
+    /// <param name="action">The GitHub action service.</param>
+    /// <param name="showUsage">A method to show usage information for the application.</param>
+    /// <param name="arguments">The queue of command-line arguments to extract argument values from.</param>
     public ArgUtils(ICoreService action, Action<string?, ICoreService> showUsage, Queue<string> arguments) : this(action, showUsage)
     {
         this.arguments = arguments;
     }
 
-    public string? GetInputString(string inputName)
+    /// <summary>
+    /// Gets the input string for the specified input.
+    /// </summary>
+    /// <remarks>
+    /// When running as a GitHub action, this method will retrieve the input value from the action's inputs.
+    /// </remarks>
+    /// <remarks>
+    /// When using the constructor with a queue of command-line arguments, this method will dequeue the next argument from the queue.
+    /// </remarks>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <returns>A nullable string containing the input value if retrieved, or <c>null</c> if there is no value specified.</returns>
+    private string? GetInputString(string inputName)
     {
-        string? input = action.GetInput(inputName);
+        string? input = null;
+        
+        if (arguments is not null)
+        { 
+            if (arguments.TryDequeue(out string? argValue))
+            {
+                input = argValue;
+            }
+        }
+        else
+        {
+            input = action.GetInput(inputName);
+        }
+        
         return string.IsNullOrWhiteSpace(input) ? null : input;
     }
 
-    public string? DequeueString()
-    {
-        if (arguments?.TryDequeue(out string? argValue) ?? false)
-        {
-            return string.IsNullOrWhiteSpace(argValue) ? null : argValue;
-        }
-
-        return null;
-    }
-
+    /// <summary>
+    /// Try to get a string input value, guarding against null values.
+    /// </summary>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="value">The output string value if retrieved, or <c>null</c> if there is no value specified or it was empty.</param>
+    /// <returns><c>true</c> if the input value was retrieved successfully, <c>false</c> otherwise.</returns>
     public bool TryGetString(string inputName, [NotNullWhen(true)] out string? value)
     {
         value = GetInputString(inputName);
         return value is not null;
     }
 
+    /// <summary>
+    /// Determine if the specified flag is provided and set to <c>true</c>.
+    /// </summary>
+    /// <param name="inputName">The name of the flag to retrieve.</param>
+    /// <param name="value"><c>true</c> if the flag is provided and set to <c>true</c>, <c>false</c> otherwise.</param>
+    /// <returns>A boolean indicating if the flag was checked successfully, only returning <c>false</c> if specified as an invalid value.</returns>
     public bool TryGetFlag(string inputName, [NotNullWhen(true)] out bool? value)
     {
         string? input = GetInputString(inputName);
@@ -65,15 +102,19 @@ public class ArgUtils
         return true;
     }
 
-    public bool TryGetRepo(string inputName, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out string? repo) =>
-        TryParseRepo(inputName, GetInputString(inputName), out org, out repo);
-
-    public bool TryDequeueRepo(string inputName, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out string? repo) =>
-        TryParseRepo(inputName, DequeueString(), out org, out repo);
-
-    private bool TryParseRepo(string inputName, string? orgRepo, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out string? repo)
+    /// <summary>
+    /// Try to get the GitHub repository name from the input or environment variable.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to the GITHUB_REPOSITORY environment variable if the input is not specified.
+    /// </remarks>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="org">The GitHub organization name, extracted from the specified {org}/{repo} value.</param>
+    /// <param name="repo">The GitHub repository name, extracted from the specified {org}/{repo} value.</param>
+    /// <returns><c>true</c> if the input value was retrieved successfully, <c>false</c> otherwise.</returns>
+    public bool TryGetRepo(string inputName, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out string? repo)
     {
-        orgRepo ??= Environment.GetEnvironmentVariable("GITHUB_REPOSITORY");
+        string? orgRepo = GetInputString(inputName) ?? Environment.GetEnvironmentVariable("GITHUB_REPOSITORY");
 
         if (orgRepo is null || !orgRepo.Contains('/'))
         {
@@ -89,9 +130,22 @@ public class ArgUtils
         return true;
     }
 
-    public bool TryDequeueRepoList(string inputName, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out List<string>? repos)
+    /// <summary>
+    /// Try to get the GitHub repository list from the input or environment variable.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to the GITHUB_REPOSITORY environment variable if the input is not specified.
+    /// </remarks>
+    /// <remarks>
+    /// All repositories must be from the same organization.
+    /// </remarks>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="org">The GitHub organization name, extracted from the specified {org}/{repo} value.</param>
+    /// <param name="repos">The list of GitHub repository names, extracted from the specified {org}/{repo} value.</param>
+    /// <returns><c>true</c> if the input value was retrieved successfully, <c>false</c> otherwise.</returns>
+    public bool TryGetRepoList(string inputName, [NotNullWhen(true)] out string? org, [NotNullWhen(true)] out List<string>? repos)
     {
-        string? orgRepos = DequeueString();
+        string? orgRepos = GetInputString(inputName) ?? Environment.GetEnvironmentVariable("GITHUB_REPOSITORY");
         org = null;
         repos = null;
 
@@ -125,14 +179,19 @@ public class ArgUtils
         return (org is not null && repos is not null);
     }
 
-    public bool TryGetLabelPrefix(string inputName, [NotNullWhen(true)] out Func<string, bool>? labelPredicate) =>
-        TryParseLabelPrefix(inputName, GetInputString(inputName), out labelPredicate);
-
-    public bool TryDequeueLabelPrefix(string inputName, [NotNullWhen(true)] out Func<string, bool>? labelPredicate) =>
-        TryParseLabelPrefix(inputName, DequeueString(), out labelPredicate);
-
-    private bool TryParseLabelPrefix(string inputName, string? labelPrefix, [NotNullWhen(true)] out Func<string, bool>? labelPredicate)
+    /// <summary>
+    /// Try to get the label prefix from the input.
+    /// </summary>
+    /// <remarks>
+    /// The label prefix must end with a non-alphanumeric character.
+    /// </remarks>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="labelPredicate">The label predicate function that checks if a label starts with the specified prefix.</param>
+    /// <returns><c>true</c> if the label prefix was retrieved successfully, <c>false</c> otherwise.</returns>
+    public bool TryGetLabelPrefix(string inputName, [NotNullWhen(true)] out Func<string, bool>? labelPredicate)
     {
+        string? labelPrefix = GetInputString(inputName);
+
         if (labelPrefix is null)
         {
             labelPredicate = null;
@@ -159,15 +218,18 @@ public class ArgUtils
         return true;
     }
 
-    public bool TryGetPath(string inputName, out string? path) =>
-        TryParsePath(GetInputString(inputName), out path);
-
-    public bool TryDequeuePath(string inputName, out string? path) =>
-        TryParsePath(DequeueString(), out path);
-
-    private bool TryParsePath(string? input, out string? path)
+    /// <summary>
+    /// Try to get a file path from the input.
+    /// </summary>
+    /// <remarks>
+    /// The file path is converted to an absolute path if it is not already absolute.
+    /// </remarks>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="path">The output file path if retrieved, or <c>null</c> if there is no value specified.</param>
+    /// <returns><c>true</c> if the input value was retrieved successfully, <c>false</c> otherwise.</returns>
+    public bool TryGetPath(string inputName, out string? path)
     {
-        path = input;
+        path = GetInputString(inputName);
 
         if (path is null)
         {
@@ -182,14 +244,19 @@ public class ArgUtils
         return true;
     }
 
-    public bool TryGetStringArray(string inputName, [NotNullWhen(true)] out string[]? values) =>
-        TryParseStringArray(inputName, GetInputString(inputName), out values);
-
-    public bool TryDequeueStringArray(string inputName, [NotNullWhen(true)] out string[]? values) =>
-        TryParseStringArray(inputName, DequeueString(), out values);
-
-    private bool TryParseStringArray(string inputName, string? input, [NotNullWhen(true)] out string[]? values)
+    /// <summary>
+    /// Try to get a string array from the input.
+    /// </summary>
+    /// <remarks>
+    /// The string array is split by commas and trimmed of whitespace.
+    /// </remarks>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="values">The output string array if retrieved, or <c>null</c> if there is no value specified.</param>
+    /// <returns><c>true</c> if the input value was retrieved successfully, <c>false</c> otherwise.</returns>
+    public bool TryGetStringArray(string inputName, [NotNullWhen(true)] out string[]? values)
     {
+        string? input = GetInputString(inputName);
+
         if (input is null)
         {
             values = null;
@@ -200,9 +267,22 @@ public class ArgUtils
         return true;
     }
 
-    public bool TryDequeueInt(string inputName, [NotNullWhen(true)] out int? value) =>
-        TryParseInt(inputName, DequeueString(), out value);
+    /// <summary>
+    /// Try to get an integer from the input.
+    /// </summary>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="value">The output integer value if retrieved, or <c>null</c> if there is no value specified.</param>
+    /// <returns><c>true</c> if the input value was retrieved successfully, <c>false</c> otherwise.</returns>
+    public bool TryGetInt(string inputName, [NotNullWhen(true)] out int? value) =>
+        TryParseInt(inputName, GetInputString(inputName), out value);
 
+    /// <summary>
+    /// Try to parse an integer from the input string.
+    /// </summary>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="input">The input string to parse.</param>
+    /// <param name="value">The output integer value if parsed successfully, or <c>null</c> if the input is invalid.</param>
+    /// <returns><c>true</c> if the input value was parsed successfully, <c>false</c> otherwise.</returns>
     private bool TryParseInt(string inputName, string? input, [NotNullWhen(true)] out int? value)
     {
         if (input is null || !int.TryParse(input, out int parsedValue))
@@ -216,14 +296,16 @@ public class ArgUtils
         return true;
     }
 
-    public bool TryGetIntArray(string inputName, [NotNullWhen(true)] out int[]? values) =>
-        TryParseIntArray(inputName, GetInputString(inputName), out values);
-
-    public bool TryDequeueIntArray(string inputName, [NotNullWhen(true)] out int[]? values) =>
-        TryParseIntArray(inputName, DequeueString(), out values);
-
-    private bool TryParseIntArray(string inputName, string? input, [NotNullWhen(true)] out int[]? values)
+    /// <summary>
+    /// Try to get an integer array from the input.
+    /// </summary>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="values">The output integer array if retrieved, or <c>null</c> if there is no value specified.</param>
+    /// <returns><c>true</c> if the input value was retrieved successfully, <c>false</c> otherwise.</returns>
+    public bool TryGetIntArray(string inputName, [NotNullWhen(true)] out int[]? values)
     {
+        string? input = GetInputString(inputName);
+
         if (input is not null)
         {
             string[] inputValues = input.Split(',');
@@ -248,14 +330,16 @@ public class ArgUtils
         return false;
     }
 
-    public bool TryGetFloat(string inputName, [NotNullWhen(true)] out float? value) =>
-        TryParseFloat(inputName, GetInputString(inputName), out value);
-
-    public bool TryDequeueFloat(string inputName, [NotNullWhen(true)] out float? value) =>
-        TryParseFloat(inputName, DequeueString(), out value);
-
-    private bool TryParseFloat(string inputName, string? input, [NotNullWhen(true)] out float? value)
+    /// <summary>
+    /// Try to get a float from the input.
+    /// </summary>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="value">The output float value if retrieved, or <c>null</c> if there is no value specified.</param>
+    /// <returns><c>true</c> if the input value was retrieved successfully, <c>false</c> otherwise.</returns>
+    public bool TryGetFloat(string inputName, [NotNullWhen(true)] out float? value)
     {
+        string? input = GetInputString(inputName);
+
         if (input is null || !float.TryParse(input, out float parsedValue))
         {
             showUsage($"Input '{inputName}' must be a decimal value.");
@@ -267,14 +351,19 @@ public class ArgUtils
         return true;
     }
 
-    public bool TryGetNumberRanges(string inputName, [NotNullWhen(true)] out List<ulong>? values) =>
-        TryParseNumberRanges(inputName, GetInputString(inputName), out values);
-
-    public bool TryDequeueNumberRanges(string inputName, [NotNullWhen(true)] out List<ulong>? values) =>
-        TryParseNumberRanges(inputName, DequeueString(), out values);
-
-    private bool TryParseNumberRanges(string inputName, string? input, [NotNullWhen(true)] out List<ulong>? values)
+    /// <summary>
+    /// Try to get a list of number ranges from the input.
+    /// </summary>
+    /// <remarks>
+    /// The input is a comma-separated list of numbers and/or dash-separated ranges.
+    /// </remarks>
+    /// <param name="inputName">The name of the input to retrieve.</param>
+    /// <param name="values">The output list of ulong values if retrieved, or <c>null</c> if there is no value specified.</param>
+    /// <returns><c>true</c> if the input value was retrieved successfully, <c>false</c> otherwise.</returns>
+    public bool TryGetNumberRanges(string inputName, [NotNullWhen(true)] out List<ulong>? values)
     {
+        string? input = GetInputString(inputName);
+
         if (input is not null)
         {
             var showUsageError = () => showUsage($"Input '{inputName}' must be comma-separated list of numbers and/or dash-separated ranges. Example: 1-3,5,7-9.");

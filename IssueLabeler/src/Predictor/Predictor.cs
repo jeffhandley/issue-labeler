@@ -53,14 +53,7 @@ if (argsData.IssuesModelPath is not null && argsData.Issues is not null)
             argsData.Test
         )));
 
-        if (argsData.Issues.Count == 1)
-        {
-            await action.WriteStatusAsync($"[Issue {argsData.Org}/{argsData.Repo}#{issueNumber}] Queued for prediction.");
-        }
-        else
-        {
-            action.WriteInfo($"[Issue {argsData.Org}/{argsData.Repo}#{issueNumber}] Queued for prediction.");
-        }
+        action.WriteInfo($"[Issue {argsData.Org}/{argsData.Repo}#{issueNumber}] Queued for prediction.");
     }
 }
 
@@ -99,14 +92,7 @@ if (argsData.PullsModelPath is not null && argsData.Pulls is not null)
             argsData.Test
         )));
 
-        if (argsData.Pulls.Count == 1)
-        {
-            await action.WriteStatusAsync($"[Pull Request {argsData.Org}/{argsData.Repo}#{pullNumber}] Queued for prediction.");
-        }
-        else
-        {
-            action.WriteInfo($"[Pull Request {argsData.Org}/{argsData.Repo}#{pullNumber}] Queued for prediction.");
-        }
+        action.WriteInfo($"[Pull Request {argsData.Org}/{argsData.Repo}#{pullNumber}] Queued for prediction.");
     }
 }
 
@@ -115,13 +101,7 @@ var (predictionResults, success) = await App.RunTasks(tasks, action);
 foreach (var prediction in predictionResults)
 {
     action.WriteNotice(prediction.Output);
-
-    if (!prediction.Success)
-    {
-        action.Summary.AddPersistent(summary => summary.AddAlert(prediction.Output, AlertType.Warning));
-    }
-
-    await action.WriteStatusAsync(prediction.Output);
+    action.Summary.AddPersistent(summary => summary.AddAlert(prediction.Output, prediction.Success ? AlertType.Note : AlertType.Caution));
 }
 
 await action.Summary.WritePersistentAsync();

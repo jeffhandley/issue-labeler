@@ -14,7 +14,14 @@ public class GitHubApi
 {
     private static ConcurrentDictionary<string, GraphQLHttpClient> _graphQLClients = new();
     private static ConcurrentDictionary<string, HttpClient> _restClients = new();
+    private const int MaxLabelDelaySeconds = 30;
 
+    /// <summary>
+    /// Gets or creates a GraphQL client for the GitHub API using the provided token.
+    /// </summary>
+    /// <remarks>The timeout is set to 2 minutes and the client is cached for reuse.</remarks>
+    /// <param name="githubToken">The GitHub token to use for authentication.</param>
+    /// <returns>A GraphQLHttpClient instance configured with the provided token and necessary headers.</returns>
     private static GraphQLHttpClient GetGraphQLClient(string githubToken) =>
         _graphQLClients.GetOrAdd(githubToken, token =>
         {
@@ -29,6 +36,12 @@ public class GitHubApi
             return client;
         });
 
+    /// <summary>
+    /// Gets or creates a REST client for the GitHub API using the provided token.
+    /// </summary>
+    /// <remarks>The client is cached for reuse.</remarks>
+    /// <param name="githubToken">The GitHub token to use for authentication.</param>
+    /// <returns>An HttpClient instance configured with the provided token and necessary headers.</returns>
     private static HttpClient GetRestClient(string githubToken) =>
         _restClients.GetOrAdd(githubToken, token =>
         {
@@ -43,6 +56,21 @@ public class GitHubApi
             return client;
         });
 
+    /// <summary>
+    /// Downloads issues from a GitHub repository, filtering them by label and other criteria.
+    /// </summary>
+    /// <param name="githubToken">The GitHub token to use for authentication.</param>
+    /// <param name="org">The GitHub organization name.</param>
+    /// <param name="repo">The GitHub repository name.</param>
+    /// <param name="labelPredicate">A predicate function to filter labels.</param>
+    /// <param name="issuesLimit">The maximum number of issues to download.</param>
+    /// <param name="pageSize">The number of items per page in GitHub API requests.</param>
+    /// <param name="pageLimit">The maximum number of pages to retrieve.</param>
+    /// <param name="retries">An array of retry delays in seconds.</param>
+    /// <param name="excludedAuthors">An array of authors to exclude from the results.</param>
+    /// <param name="action">The GitHub action service.</param>
+    /// <param name="verbose">Emit verbose output into the action log.</param>
+    /// <returns>The downloaded issues as an async enumerable collection of tuples containing the issue and its predicate-matched label (when only one matcing label is found).</returns>
     public static async IAsyncEnumerable<(Issue Issue, string Label)> DownloadIssues(
         string githubToken,
         string org, string repo,
@@ -61,6 +89,21 @@ public class GitHubApi
         }
     }
 
+    /// <summary>
+    /// Downloads pull requests from a GitHub repository, filtering them by label and other criteria.
+    /// </summary>
+    /// <param name="githubToken">The GitHub token to use for authentication.</param>
+    /// <param name="org">The GitHub organization name.</param>
+    /// <param name="repo">The GitHub repository name.</param>
+    /// <param name="labelPredicate">A predicate function to filter labels.</param>
+    /// <param name="pullsLimit">The maximum number of pull requests to download.</param>
+    /// <param name="pageSize">The number of items per page in GitHub API requests.</param>
+    /// <param name="pageLimit">The maximum number of pages to retrieve.</param>
+    /// <param name="retries">An array of retry delays in seconds.</param>
+    /// <param name="excludedAuthors">An array of authors to exclude from the results.</param>
+    /// <param name="action">The GitHub action service.</param>
+    /// <param name="verbose">Emit verbose output into the action log.</param>
+    /// <returns>The downloaded pull requests as an async enumerable collection of tuples containing the pull request and its predicate-matched label (when only one matching label is found).</returns>
     public static async IAsyncEnumerable<(PullRequest PullRequest, string Label)> DownloadPullRequests(
         string githubToken,
         string org,
@@ -82,6 +125,24 @@ public class GitHubApi
         }
     }
 
+    /// <summary>
+    /// Downloads items from a GitHub repository, filtering them by label and other criteria.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="itemQueryName">The GraphQL query name for the item type (e.g., "issues" or "pullRequests").</param>
+    /// <param name="githubToken">The GitHub token to use for authentication.</param>
+    /// <param name="org">The GitHub organization name.</param>
+    /// <param name="repo">The GitHub repository name.</param>
+    /// <param name="labelPredicate">A predicate function to filter labels.</param>
+    /// <param name="itemLimit">The maximum number of issues to download.</param>
+    /// <param name="pageSize">The number of items per page in GitHub API requests.</param>
+    /// <param name="pageLimit">The maximum number of pages to retrieve.</param>
+    /// <param name="retries">An array of retry delays in seconds.</param>
+    /// <param name="excludedAuthors">An array of authors to exclude from the results.</param>
+    /// <param name="action">The GitHub action service.</param>
+    /// <param name="verbose">Emit verbose output into the action log.</param>
+    /// <returns>The downloaded items as an async enumerable collection of tuples containing the item and its predicate-matched label (when only one matching label is found).</returns>
+    /// <exception cref="ApplicationException"></exception>
     private static async IAsyncEnumerable<(T Item, string Label)> DownloadItems<T>(
         string itemQueryName,
         string githubToken,
@@ -226,6 +287,18 @@ public class GitHubApi
         while (!finished);
     }
 
+    /// <summary>
+    /// Retrieves a page of items from a GitHub repository using GraphQL.
+    /// </summary>
+    /// <typeparam name="T">The type of items to retrieve (e.g., Issue or PullRequest).</typeparam>
+    /// <param name="githubToken">The GitHub token to use for authentication.</param>
+    /// <param name="org">The GitHub organization name.</param>
+    /// <param name="repo">The GitHub repository name.</param>
+    /// <param name="pageSize">The number of items per page in GitHub API requests.</param>
+    /// <param name="after">The cursor for pagination (null for the first page).</param>
+    /// <param name="itemQueryName">The GraphQL query name for the item type (e.g., "issues" or "pullRequests").</param>
+    /// <returns>The page of items retrieved from the GitHub repository.</returns>
+    /// <exception cref="ApplicationException">When the GraphQL request returns errors or the response does not include the expected data.</exception>
     private static async Task<Page<T>> GetItemsPage<T>(string githubToken, string org, string repo, int pageSize, string? after, string itemQueryName) where T : Issue
     {
         GraphQLHttpClient client = GetGraphQLClient(githubToken);
@@ -281,9 +354,31 @@ public class GitHubApi
         return response.Data.Repository.Result;
     }
 
+    /// <summary>
+    /// Gets an issue from a GitHub repository using GraphQL.
+    /// </summary>
+    /// <param name="githubToken">The GitHub token to use for authentication.</param>
+    /// <param name="org">The GitHub organization name.</param>
+    /// <param name="repo">The GitHub repository name.</param>
+    /// <param name="number">The issue number.</param>
+    /// <param name="retries">An array of retry delays in seconds.</param>
+    /// <param name="action">The GitHub action service.</param>
+    /// <param name="verbose">Emit verbose output into the action log.</param>
+    /// <returns>The issue retrieved from the GitHub repository, or <c>null</c> if not found.</returns>
     public static async Task<Issue?> GetIssue(string githubToken, string org, string repo, ulong number, int[] retries, ICoreService action, bool verbose) =>
         await GetItem<Issue>(githubToken, org, repo, number, retries, verbose, "issue", action);
 
+    /// <summary>
+    /// Gets a pull request from a GitHub repository using GraphQL.
+    /// </summary>
+    /// <param name="githubToken">The GitHub token to use for authentication.</param>
+    /// <param name="org">The GitHub organization name.</param>
+    /// <param name="repo">The GitHub repository name.</param>
+    /// <param name="number">The pull request number.</param>
+    /// <param name="retries">An array of retry delays in seconds.</param>
+    /// <param name="action">The GitHub action service.</param>
+    /// <param name="verbose">Emit verbose output into the action log.</param>
+    /// <returns>The pull request retrieved from the GitHub repository, or <c>null</c> if not found.</returns>
     public static async Task<PullRequest?> GetPullRequest(string githubToken, string org, string repo, ulong number, int[] retries, ICoreService action, bool verbose) =>
         await GetItem<PullRequest>(githubToken, org, repo, number, retries, verbose, "pullRequest", action);
 
@@ -338,7 +433,7 @@ public class GitHubApi
                     // These errors occur when an issue/pull does not exist or when the API rate limit has been exceeded
                     if (response.Errors.Any(e => e.Message.StartsWith("API rate limit exceeded")))
                     {
-                        action.WriteNotice($"""
+                        action.WriteInfo($"""
                             [{typeName} {org}/{repo}#{number}] Failed to retrieve data.
                                 Rate limit has been reached.
                                 {(retry < retries.Length ? $"Will proceed with retry {retry + 1} of {retries.Length} after {retries[retry]} seconds..." : $"Retry limit of {retries.Length} reached.")}
@@ -349,7 +444,7 @@ public class GitHubApi
                         // Could not detect this as a rate limit issue. Do not retry.
                         string errors = string.Join("\n\n", response.Errors.Select((e, i) => $"{i + 1}. {e.Message}").ToArray());
 
-                        action.WriteNotice($"""
+                        action.WriteInfo($"""
                             [{typeName} {org}/{repo}#{number}] Failed to retrieve data.
                                 GraphQL request returned errors:
 
@@ -363,7 +458,7 @@ public class GitHubApi
                 {
                     // Do not retry as these errors are not recoverable
                     // This is usually a bug during development when the query/response model is incorrect
-                    action.WriteNotice($"""
+                    action.WriteInfo($"""
                         [{typeName} {org}/{repo}#{number}] Failed to retrieve data.
                             GraphQL response did not include the repository result data.
                         """);
@@ -395,6 +490,18 @@ public class GitHubApi
         return null;
     }
 
+    /// <summary>
+    /// Adds a label to an issue or pull request in a GitHub repository.
+    /// </summary>
+    /// <param name="githubToken">The GitHub token to use for authentication.</param>
+    /// <param name="org">The GitHub organization name.</param>
+    /// <param name="repo">The GitHub repository name.</param>
+    /// <param name="type">The type of item (e.g., "issue" or "pull request").</param>
+    /// <param name="number">The issue or pull request number.</param>
+    /// <param name="label">The label to add.</param>
+    /// <param name="retries">An array of retry delays in seconds. A maximum delay of 30 seconds is enforced.</param>
+    /// <param name="action">The GitHub action service.</param>
+    /// <returns>A string describing a failure, or <c>null</c> if successful.</returns>
     public static async Task<string?> AddLabel(string githubToken, string org, string repo, string type, ulong number, string label, int[] retries, ICoreService action)
     {
         var client = GetRestClient(githubToken);
@@ -412,17 +519,30 @@ public class GitHubApi
                 return null;
             }
 
-            action.WriteNotice($"""
+            action.WriteInfo($"""
                 [{type} {org}/{repo}#{number}] Failed to add label '{label}'. {response.ReasonPhrase} ({response.StatusCode})
                     {(retry < retries.Length ? $"Will proceed with retry {retry + 1} of {retries.Length} after {retries[retry]} seconds..." : $"Retry limit of {retries.Length} reached.")}
                 """);
 
-            await Task.Delay(retries[retry++] * 1000);
+            int delay = Math.Min(retries[retry++], MaxLabelDelaySeconds);
+            await Task.Delay(delay * 1000);
         }
 
         return $"Failed to add label '{label}' after {retries.Length} retries.";
     }
 
+    /// <summary>
+    /// Removes a label from an issue or pull request in a GitHub repository.
+    /// </summary>
+    /// <param name="githubToken">The GitHub token to use for authentication.</param>
+    /// <param name="org">The GitHub organization name.</param>
+    /// <param name="repo">The GitHub repository name.</param>
+    /// <param name="type">The type of item (e.g., "issue" or "pull request").</param>
+    /// <param name="number">The issue or pull request number.</param>
+    /// <param name="label">The label to add.</param>
+    /// <param name="retries">An array of retry delays in seconds. A maximum delay of 30 seconds is enforced.</param>
+    /// <param name="action">The GitHub action service.</param>
+    /// <returns>A string describing a failure, or <c>null</c> if successful.</returns>
     public static async Task<string?> RemoveLabel(string githubToken, string org, string repo, string type, ulong number, string label, int[] retries, ICoreService action)
     {
         var client = GetRestClient(githubToken);
@@ -439,12 +559,13 @@ public class GitHubApi
                 return null;
             }
 
-            action.WriteNotice($"""
+            action.WriteInfo($"""
                 [{type} {org}/{repo}#{number}] Failed to remove label '{label}'. {response.ReasonPhrase} ({response.StatusCode})
                     {(retry < retries.Length ? $"Will proceed with retry {retry + 1} of {retries.Length} after {retries[retry]} seconds..." : $"Retry limit of {retries.Length} reached.")}
                 """);
 
-            await Task.Delay(retries[retry++] * 1000);
+            int delay = Math.Min(retries[retry++], MaxLabelDelaySeconds);
+            await Task.Delay(delay * 1000);
         }
 
         return $"Failed to remove label '{label}' after {retries.Length} retries.";

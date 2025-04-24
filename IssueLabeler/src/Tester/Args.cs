@@ -5,7 +5,7 @@ using Actions.Core.Services;
 
 public struct Args
 {
-    public string GitHubToken => Environment.GetEnvironmentVariable("GITHUB_TOKEN")!;
+    public readonly string GitHubToken => Environment.GetEnvironmentVariable("GITHUB_TOKEN")!;
     public string Org { get; set; }
     public List<string> Repos { get; set; }
     public float Threshold { get; set; }
@@ -80,7 +80,7 @@ public struct Args
             switch (argument)
             {
                 case "--repo":
-                    if (!argUtils.TryDequeueRepoList("--repo", out string? org, out List<string>? repos))
+                    if (!argUtils.TryGetRepoList("--repo", out string? org, out List<string>? repos))
                     {
                         return null;
                     }
@@ -89,7 +89,7 @@ public struct Args
                     break;
 
                 case "--label-prefix":
-                    if (!argUtils.TryDequeueLabelPrefix("--label-prefix", out Func<string, bool>? labelPredicate))
+                    if (!argUtils.TryGetLabelPrefix("--label-prefix", out Func<string, bool>? labelPredicate))
                     {
                         return null;
                     }
@@ -97,7 +97,7 @@ public struct Args
                     break;
 
                 case "--excluded-authors":
-                    if (!argUtils.TryDequeueStringArray("--excluded-authors", out string[]? excludedAuthors))
+                    if (!argUtils.TryGetStringArray("--excluded-authors", out string[]? excludedAuthors))
                     {
                         return null;
                     }
@@ -105,7 +105,7 @@ public struct Args
                     break;
 
                 case "--threshold":
-                    if (!argUtils.TryDequeueFloat("--threshold", out float? threshold))
+                    if (!argUtils.TryGetFloat("--threshold", out float? threshold))
                     {
                         return null;
                     }
@@ -113,7 +113,7 @@ public struct Args
                     break;
 
                 case "--issues-model":
-                    if (!argUtils.TryDequeuePath("--issues-model", out string? IssuesModelPath))
+                    if (!argUtils.TryGetPath("--issues-model", out string? IssuesModelPath))
                     {
                         return null;
                     }
@@ -121,7 +121,7 @@ public struct Args
                     break;
 
                 case "--issues-limit":
-                    if (!argUtils.TryDequeueInt("--issues-limit", out int? IssuesLimit))
+                    if (!argUtils.TryGetInt("--issues-limit", out int? IssuesLimit))
                     {
                         return null;
                     }
@@ -129,7 +129,7 @@ public struct Args
                     break;
 
                 case "--pulls-model":
-                    if (!argUtils.TryDequeuePath("--pulls-model", out string? PullsModelPath))
+                    if (!argUtils.TryGetPath("--pulls-model", out string? PullsModelPath))
                     {
                         return null;
                     }
@@ -137,7 +137,7 @@ public struct Args
                     break;
 
                 case "--pulls-limit":
-                    if (!argUtils.TryDequeueInt("--pulls-limit", out int? PullsLimit))
+                    if (!argUtils.TryGetInt("--pulls-limit", out int? PullsLimit))
                     {
                         return null;
                     }
@@ -145,7 +145,7 @@ public struct Args
                     break;
 
                 case "--page-size":
-                    if (!argUtils.TryDequeueInt("--page-size", out int? pageSize))
+                    if (!argUtils.TryGetInt("--page-size", out int? pageSize))
                     {
                         return null;
                     }
@@ -153,7 +153,7 @@ public struct Args
                     break;
 
                 case "--page-limit":
-                    if (!argUtils.TryDequeueInt("--page-limit", out int? pageLimit))
+                    if (!argUtils.TryGetInt("--page-limit", out int? pageLimit))
                     {
                         return null;
                     }
@@ -161,7 +161,7 @@ public struct Args
                     break;
 
                 case "--retries":
-                    if (!argUtils.TryDequeueIntArray("--retries", out int[]? retries))
+                    if (!argUtils.TryGetIntArray("--retries", out int[]? retries))
                     {
                         return null;
                     }

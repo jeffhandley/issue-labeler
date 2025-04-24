@@ -43,7 +43,7 @@ public struct Args
             switch (argument)
             {
                 case "--issues-data":
-                    if (!argUtils.TryDequeuePath("--issues-data", out string? IssuesDataPath))
+                    if (!argUtils.TryGetPath("--issues-data", out string? IssuesDataPath))
                     {
                         return null;
                     }
@@ -51,7 +51,7 @@ public struct Args
                     break;
 
                 case "--issues-model":
-                    if (!argUtils.TryDequeuePath("--issues-model", out string? IssuesModelPath))
+                    if (!argUtils.TryGetPath("--issues-model", out string? IssuesModelPath))
                     {
                         return null;
                     }
@@ -59,7 +59,7 @@ public struct Args
                     break;
 
                 case "--pulls-data":
-                    if (!argUtils.TryDequeuePath("--pulls-data", out string? PullsDataPath))
+                    if (!argUtils.TryGetPath("--pulls-data", out string? PullsDataPath))
                     {
                         return null;
                     }
@@ -67,7 +67,7 @@ public struct Args
                     break;
 
                 case "--pulls-model":
-                    if (!argUtils.TryDequeuePath("--pulls-model", out string? PullsModelPath))
+                    if (!argUtils.TryGetPath("--pulls-model", out string? PullsModelPath))
                     {
                         return null;
                     }
