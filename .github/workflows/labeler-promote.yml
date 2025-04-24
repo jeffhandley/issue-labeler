@@ -1,4 +1,5 @@
 name: "Labeler: Promotion"
+description: "Promote a model from staging to 'ACTIVE', backing up the currently 'ACTIVE' model."
 
 on:
   # Dispatched via the Actions UI, promotes the staged models from
@@ -14,38 +15,33 @@ on:
         type: boolean
         required: true
       staged_key:
-        description: "The cache key suffix to use for promoting a staged model to 'ACTIVE'"
-        type: string
+        description: "The cache key suffix to use for promoting a staged model to 'ACTIVE'. Defaults to 'staged'."
         required: true
         default: "staged"
       backup_key:
-        description: "The cache key suffix to use for backing up the currently active model"
-        type: string
+        description: "The cache key suffix to use for backing up the currently active model. Defaults to 'backup'."
         default: "backup"
 
 permissions:
   actions: write
 
 jobs:
-  issues:
-    if: ${{ inputs.issues }}
+  promote:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - type: "issues"
+            promote: ${{ inputs.issues }}
+          - type: "pulls"
+            promote: ${{ inputs.pulls }}
+    if: ${{ matrix.promote }}
     steps:
-      - name: "Promote Issues Model"
+      - name: "Promote ${{ matrix.type }} Model"
         uses: jeffhandley/issue-labeler/promote@main
         with:
-          type: "issues"
-          staged_key: ${{ inputs.staged_key }}
-          backup_key: ${{ inputs.backup_key }}
-
-  pulls:
-    if: ${{ inputs.pulls }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Promote Pulls Model"
-        uses: jeffhandley/issue-labeler/promote@main
-        with:
-          type: "pulls"
+          type: ${{ matrix.type }}
           staged_key: ${{ inputs.staged_key }}
           backup_key: ${{ inputs.backup_key }}
 

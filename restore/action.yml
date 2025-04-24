@@ -1,9 +1,9 @@
-name: "Restore prediction model from cache"
-description: "Restore an active model from cache for prediction or cache-retention."
+name: "Restore Model from Cache"
+description: "Restore a model from cache for label prediction or cache retention."
 
 inputs:
   type:
-    description: "The model to promote. Must be 'issues' or 'pulls'."
+    description: "The model to restore. Must be 'issues' or 'pulls'."
     required: true
 
   cache_key:
@@ -12,11 +12,11 @@ inputs:
     default: "ACTIVE"
 
   fail-on-cache-miss:
-    description: "By default, the job will not fail on a cache miss. Set to true to force failure."
+    description: "Set to 'true' to fail the job if the model cannot be restored from cache. Defaults to 'false'."
 
 outputs:
   cache-hit:
-    description: "A boolean value indicating whether the model was successfully restored from cache."
+    description: "A string value ('true' or 'false') indicating whether the model was successfully restored from cache."
     value: ${{ steps.restore-cache.outputs.cache-hit }}
 
 branding:
@@ -30,29 +30,29 @@ runs:
       shell: bash
       run: |
         if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
-          echo "::error::'type' must be either 'issues' or 'pulls'. Value provided: '${{ inputs.type }}'"
+          echo "::error::'type' must be either 'issues' or 'pulls'. Value provided: '${{ inputs.type }}'."
           echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
-          echo "\`type\` must be either 'issues' or 'pulls'." >> $GITHUB_STEP_SUMMARY
+          echo "\`type\` must be either 'Issues' or 'Pull Requests'." >> $GITHUB_STEP_SUMMARY
           exit 1
         fi
 
-    - name: "Restore model from cache"
+    - name: "Restore Model from Cache"
       id: restore-cache
       uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
-        path: labeler-cache/${{ inputs.type }}-model.zip
-        key: issue-labeler/model/${{ inputs.type }}/${{ inputs.cache_key || 'ACTIVE' }}
+        path: "labeler-cache/${{ inputs.type }}-model.zip"
+        key: "issue-labeler/model/${{ inputs.type }}/${{ inputs.cache_key || 'ACTIVE' }}"
         fail-on-cache-miss: false
 
-    - name: "Produce success output"
+    - name: "Produce Success Output"
       shell: bash
       run: |
         if [[ "${{ steps.restore-cache.outputs.cache-hit }}" == "true" ]]; then
           echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
-          echo "> The ${{ inputs.type }} model was successfully restored from cache." >> $GITHUB_STEP_SUMMARY
+          echo "> The ${{ inputs.type == "issues" && "Issues" || "Pull Requests" }} model was successfully restored from cache." >> $GITHUB_STEP_SUMMARY
         else
           echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
-          echo "> The ${{ inputs.type }} model was not restored from cache. Label prediction cannot proceed." >> $GITHUB_STEP_SUMMARY
+          echo "> The ${{ inputs.type == "issues" && "Issues" || "Pull Requests" }} model was not restored from cache. Label prediction cannot proceed." >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ inputs.fail-on-cache-miss }}" != "true" ]]; then
             echo "> The workflow is gracefully exiting without failure." >> $GITHUB_STEP_SUMMARY
@@ -60,7 +60,7 @@ runs:
         fi
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "> [!TIP]" >> $GITHUB_STEP_SUMMARY
-        echo "> Refer to the [GitHub documentation](https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows#usage-limits-and-eviction-policy) for more information about cache retention policies." >> $GITHUB_STEP_SUMMARY
+        echo "> Refer to the [GitHub documentation](https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows#usage-limits-and-eviction) for details about cache retention policies." >> $GITHUB_STEP_SUMMARY
 
         if [[ "${{ steps.restore-cache.outputs.cache-hit }}" != "true" && "${{ inputs.fail-on-cache-miss }}" == "true" ]]; then
           exit 1

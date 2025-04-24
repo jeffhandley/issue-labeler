@@ -1,4 +1,5 @@
 name: "Labeler: Predict (Pulls)"
+description: "Predict labels for Pull Requests using a trained model."
 
 on:
   # Per to the following documentation:
@@ -18,25 +19,26 @@ on:
   workflow_dispatch:
     inputs:
       pulls:
-        description: "Pull Request Numbers (comma-separated list of ranges)"
-        type: string
+        description: "Pull Request Numbers (comma-separated list of ranges)."
         required: true
       cache_key:
-        description: "The cache key suffix to use for loading the model, using 'ACTIVE' by default"
-        type: string
+        description: "The cache key suffix to use for restoring the model. Defaults to 'ACTIVE'."
         required: true
         default: "ACTIVE"
 
 env:
+  # Do not allow failure for jobs triggered automatically (this can block PR merge)
+  ALLOW_FAILURE: ${{ github.event_name == "workflow_dispatch" }}
+
   LABEL_PREFIX: "area-"
   THRESHOLD: 0.40
   DEFAULT_LABEL: "needs-area-label"
-  EXCLUDED_AUTHORS: null
+  EXCLUDED_AUTHORS: "null"
 
 jobs:
   predict-pull-label:
-    # Do not run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == "jeffhandley" }}
+    # Do not automatically run the workflow on forks outside the 'jeffhandley' org
+    if: ${{ github.event_name == "workflow_dispatch" || github.repository_owner == "jeffhandley" }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -46,18 +48,18 @@ jobs:
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: pulls
-          fail-on-cache-miss: ${{ github.event_name == "workflow_dispatch" }}
+          fail-on-cache-miss: ${{ env.ALLOW_FAILURE }}
 
       - name: "Predict pull labels"
         id: prediction
         if: ${{ steps.restore-model.outputs.cache-hit == "true" }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
-          pulls:            ${{ inputs.pulls || github.event.number }}
-          label_prefix:     ${{ env.LABEL_PREFIX }}
-          threshold:        ${{ env.THRESHOLD }}
-          default_label:    ${{ env.DEFAULT_LABEL }}
+          pulls: ${{ inputs.pulls || github.event.number }}
+          label_prefix: ${{ env.LABEL_PREFIX }}
+          threshold: ${{ env.THRESHOLD }}
+          default_label: ${{ env.DEFAULT_LABEL }}
           excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
         env:
-          GITHUB_TOKEN:  ${{ github.token }}
-        continue-on-error: ${{ github.event_name == "pull_request_target" }}
+          GITHUB_TOKEN: ${{ github.token }}
+        continue-on-error: ${{ !env.ALLOW_FAILURE }}

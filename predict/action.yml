@@ -1,29 +1,43 @@
-name: 'Predict Issue Labels'
-description: 'Predicts issue labels using a machine learning model trained against existing issues.'
+name: "Predict Labels"
+description: "Predict labels for Issues and Pull Requests using models already restored from cache."
 
 inputs:
   issues:
-    description: 'The issue numbers to predict labels for, specified as a comma-separated list of numbers or number ranges.'
+    description: "Issue Numbers (comma-separated list of ranges)."
     required: true
+
   pulls:
-    description: 'The pull request numbers to predict labels for, specified as a comma-separated list of numbers or number ranges.'
+    description: "Pull Request Numbers (comma-separated list of ranges)."
     required: true
+
   label_prefix:
-    description: "The label prefix used for prediction. Must end with a non-alphanumeric character."
-    required: true
+    description: "The label prefix used for prediction. Must end with a non-alphanumeric character. Defaults to 'area-'."
+    required: false
+    default: "area-"
+
   threshold:
-    description: "The minimum confidence score for a label prediction, as a decimal between 0.00 and 1.00. The recommended threshold is 0.40."
-    required: true
+    description: "The minimum confidence score for a label prediction, as a decimal between 0.00 and 1.00. Defaults to 0.40."
+    required: false
+    default: "0.40"
+
   default_label:
     description: "The default label to apply if no prediction meets the threshold. Leave blank for no default label."
+
   excluded_authors:
-    description: "Comma-separated list of authors to exclude."
+    description: "Comma-separated list of authors to exclude. Defaults to none."
+
   retries:
-    description: "Comma-separated list of retry delays in seconds. Defaults to: 30,30,300,300,3000,3000."
+    description: "Comma-separated list of retry delays in seconds. Defaults to '30,30,300,300,3000,3000'."
+    required: false
+    default: "30,30,300,300,3000,3000"
+
   test:
     description: "Run in test mode, outputting predictions without applying labels."
+    required: false
+
   verbose:
     description: "Enable verbose output."
+    required: false
 
 branding:
   color: "purple"
@@ -34,4 +48,4 @@ runs:
   image: docker://ghcr.io/jeffhandley/issue-labeler/predictor:main
   env:
     INPUT_ISSUES_MODEL: "labeler-cache/issues-model.zip"
-    INPUT_PULLS_MODEL:  "labeler-cache/pulls-model.zip"
+    INPUT_PULLS_MODEL: "labeler-cache/pulls-model.zip"

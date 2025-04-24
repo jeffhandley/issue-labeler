@@ -1,7 +1,8 @@
 name: "Labeler: Predict (Issues)"
+description: "Predict labels for Issues using a trained model."
 
 on:
-  # Only automatically predict area labels when issues are originally opened
+  # Only automatically predict area labels when issues are first opened
   issues:
     types: opened
 
@@ -9,25 +10,26 @@ on:
   workflow_dispatch:
     inputs:
       issues:
-        description: "Issue Numbers (comma-separated list of ranges)"
-        type: string
+        description: "Issue Numbers (comma-separated list of ranges)."
         required: true
       cache_key:
-        description: "The cache key suffix to use for loading the model, using 'ACTIVE' by default"
-        type: string
+        description: "The cache key suffix to use for restoring the model. Defaults to 'ACTIVE'."
         required: true
         default: "ACTIVE"
 
 env:
+  # Do not allow failure for jobs triggered automatically (as this causes red noise on the workflows list)
+  ALLOW_FAILURE: ${{ github.event_name == "workflow_dispatch" }}
+
   LABEL_PREFIX: "area-"
   THRESHOLD: 0.40
   DEFAULT_LABEL: "needs-area-label"
-  EXCLUDED_AUTHORS: null
+  EXCLUDED_AUTHORS: "null"
 
 jobs:
   predict-issue-label:
-    # Do not run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == "jeffhandley" }}
+    # Do not automatically run the workflow on forks outside the 'jeffhandley' org
+    if: ${{ github.event_name == "workflow_dispatch" || github.repository_owner == "jeffhandley" }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -37,18 +39,18 @@ jobs:
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: issues
-          fail-on-cache-miss: ${{ github.event_name == "workflow_dispatch" }}
+          fail-on-cache-miss: ${{ env.ALLOW_FAILURE }}
 
       - name: "Predict issue labels"
         id: prediction
         if: ${{ steps.restore-model.outputs.cache-hit == "true" }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
-          issues:           ${{ inputs.issues || github.event.issue.number }}
-          label_prefix:     ${{ env.LABEL_PREFIX }}
-          threshold:        ${{ env.THRESHOLD }}
-          default_label:    ${{ env.DEFAULT_LABEL }}
+          issues: ${{ inputs.issues || github.event.issue.number }}
+          label_prefix: ${{ env.LABEL_PREFIX }}
+          threshold: ${{ env.THRESHOLD }}
+          default_label: ${{ env.DEFAULT_LABEL }}
           excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
         env:
-          GITHUB_TOKEN:  ${{ github.token }}
-        continue-on-error: ${{ github.event_name == "issues" }}
+          GITHUB_TOKEN: ${{ github.token }}
+        continue-on-error: ${{ !env.ALLOW_FAILURE }}

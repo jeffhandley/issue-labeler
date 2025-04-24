@@ -1,4 +1,5 @@
 name: "Labeler: Training"
+description: "Train the Issues and Pull Requests models for label prediction."
 
 on:
   workflow_dispatch:
@@ -25,17 +26,18 @@ on:
           - "Test Model"
 
       repository:
-        description: "The org/repo to download data from (defaults to current repository)"
-        type: string
+        description: "The org/repo to download data from. Defaults to the current repository."
       limit:
-        description: "Max number of items to download for training/testing the model (newest items are used)"
+        description: "Max number of items to download for training/testing the model (newest items are used). Defaults to the max number of pages times the page size."
         type: number
       page_size:
-        description: "The number of items to include on each request"
+        description: "Number of items per page in GitHub API requests. Defaults to 100 for issues, 25 for pull requests."
+        type: number
+      page_limit:
+        description: "Maximum number of pages to download for training/testing the model. Defaults to 1000 for issues, 4000 for pull requests."
         type: number
       cache_key_suffix:
-        description: "The cache key suffix to use for staged data/models (use 'ACTIVE' to bypass staging)"
-        type: string
+        description: "The cache key suffix to use for staged data/models (use 'ACTIVE' to bypass staging). Defaults to 'staged'."
         required: true
         default: "staged"
 
@@ -47,6 +49,7 @@ env:
   THRESHOLD: "0.40"
   LIMIT: ${{ inputs.limit }}
   PAGE_SIZE: ${{ inputs.page_size }}
+  PAGE_LIMIT: ${{ inputs.page_limit }}
   JOB_DOWNLOAD: ${{ inputs.steps in ["All", "Download Data"] }}
   JOB_TRAIN: ${{ inputs.steps in ["All", "Train Model"] }}
   JOB_TEST: ${{ inputs.steps in ["All", "Test Model"] }}
@@ -56,12 +59,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        type: ["issues", "pulls"]
+        include:
+          - type: issues
+            run: ${{ inputs.type in ["Both", "Issues"] }}
+          - type: pulls
+            run: ${{ inputs.type in ["Both", "Pull Requests"] }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
       pull-requests: read
-    if: ${{ env.JOB_DOWNLOAD }}
+    if: ${{ env.JOB_DOWNLOAD && matrix.run }}
     steps:
       - name: "Download Data for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
         uses: jeffhandley/issue-labeler/download@main
@@ -73,6 +80,7 @@ jobs:
           excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
           limit: ${{ env.LIMIT }}
           page_size: ${{ env.PAGE_SIZE }}
+          page_limit: ${{ env.PAGE_LIMIT }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
@@ -80,11 +88,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        type: ["issues", "pulls"]
+        include:
+          - type: "issues"
+            run: ${{ inputs.type in ["Both", "Issues"] }}
+          - type: "pulls"
+            run: ${{ inputs.type in ["Both", "Pull Requests"] }}
     runs-on: ubuntu-latest
     permissions: {}
     needs: download
-    if: ${{ env.JOB_TRAIN && (needs.download.result == "success" || !env.JOB_DOWNLOAD) }}
+    if: ${{ env.JOB_TRAIN && matrix.run && (needs.download.result == 'success' || !env.JOB_DOWNLOAD) }}
     steps:
       - name: "Train Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
         uses: jeffhandley/issue-labeler/train@main
@@ -97,13 +109,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        type: ["issues", "pulls"]
+        include:
+          - type: issues
+            run: ${{ inputs.type in ["Both", "Issues"] }}
+          - type: pulls
+            run: ${{ inputs.type in ["Both", "Pull Requests"] }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
       pull-requests: read
     needs: train
-    if: ${{ env.JOB_TEST && (needs.train.result == "success" || !env.JOB_TRAIN) }}
+    if: ${{ env.JOB_TEST && matrix.run && (needs.train.result == "success" || !env.JOB_TRAIN) }}
     steps:
       - name: "Test Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
         uses: jeffhandley/issue-labeler/test@main
@@ -116,5 +132,6 @@ jobs:
           threshold: ${{ env.THRESHOLD }}
           limit: ${{ env.LIMIT }}
           page_size: ${{ env.PAGE_SIZE }}
+          page_limit: ${{ env.PAGE_LIMIT }}
         env:
           GITHUB_TOKEN: ${{ github.token }}

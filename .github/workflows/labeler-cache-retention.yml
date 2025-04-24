@@ -1,5 +1,5 @@
 name: "Labeler: Cache Retention"
-description: "Regularly restore the issue-labeler cache entries to prevent cache eviction."
+description: "Regularly restore the prediction models from cache to prevent cache eviction."
 
 # For more information about GitHub's action cache limits and eviction policy, see:
 # https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/caching-dependencies-to-speed-up-workflows#usage-limits-and-eviction-policy
@@ -11,30 +11,25 @@ on:
   workflow_dispatch:
     inputs:
       cache_key:
-        description: "The cache key suffix to use for loading the model"
-        type: string
+        description: "The cache key suffix to use for restoring the model from cache. Defaults to 'ACTIVE'."
         required: true
         default: "ACTIVE"
 
-jobs:
-  issues:
-    # Do not run the job on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == "jeffhandley" }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: jeffhandley/issue-labeler/restore@main
-        with:
-          type: issues
-          cache_key: ${{ inputs.cache_key || "ACTIVE" }}
-          fail-on-cache-miss: true
+env:
+  CACHE_KEY: ${{ inputs.cache_key || "ACTIVE" }}
 
-  pulls:
-    # Do not run the job on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == "jeffhandley" }}
+jobs:
+  restore-cache:
+    # Do not automatically run the workflow on forks outside the 'jeffhandley' org
+    if: ${{ github.event_name == "workflow_dispatch" || github.repository_owner == "jeffhandley" }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        type: ["issues", "pulls"]
     steps:
       - uses: jeffhandley/issue-labeler/restore@main
         with:
-          type: pulls
-          cache_key: ${{ inputs.cache_key || "ACTIVE" }}
+          type: ${{ matrix.type }}
+          cache_key: ${{ env.CACHE_KEY }}
           fail-on-cache-miss: true

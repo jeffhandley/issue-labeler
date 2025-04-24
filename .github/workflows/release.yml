@@ -1,11 +1,11 @@
-name: Release
+name: "Release"
+description: "Create a new release of the Issue Labeler, publishing the predictor Docker container image to the GitHub container registry."
 
 on:
   workflow_dispatch:
     inputs:
       image-tags:
-        description: "The semi-colon separated list of tags to apply to the published Docker container image"
-        required: true
+        description: "The optional semicolon separated list of tags to apply to the published Docker container image. By default, the image can only be referred to by its sha256 hash."
 
   release:
     types: [published]

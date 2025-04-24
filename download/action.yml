@@ -15,13 +15,13 @@ inputs:
   excluded_authors:
     description: "Comma-separated list of authors to exclude."
   limit:
-    description: "Max number of items to download (newest items are downloaded)."
+    description: "Max number of items to download (newest items are used). Defaults to the max number of pages times the page size."
   page_size:
-    description: "Number of items per page in GitHub API requests. Defaults to: 100 for issues, 25 for pull requests"
+    description: "Number of items per page in GitHub API requests. Defaults to 100 for issues, 25 for pull requests."
   page_limit:
-    description: "Maximum number of pages to retrieve. Defaults to: 1000 for issues, 4000 for pull requests."
+    description: "Maximum number of pages to retrieve. Defaults to 1000 for issues, 4000 for pull requests."
   retries:
-    description: "Comma-separated list of retry delays in seconds. Defaults to: 30,30,300,300,3000,3000."
+    description: "Comma-separated list of retry delays in seconds. Defaults to '30,30,300,300,3000,3000'."
   repository:
     description: "The org/repo to download data from. Defaults to current repository."
   cache_key:
@@ -44,7 +44,7 @@ runs:
         echo "DATA_PATH=${{ format('labeler-cache/{0}-data.tsv', inputs.type) }}" >> $GITHUB_ENV
         echo "CACHE_KEY=${{ format('issue-labeler/data/{0}/{1}', inputs.type, inputs.cache_key || 'staged') }}" >> $GITHUB_ENV
 
-    - name: "Check for Existing Cache"
+    - name: "Check for Existing Cache Entry"
       id: check-cache
       uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
@@ -59,7 +59,7 @@ runs:
         if [[ "${{ steps.check-cache.outputs.cache-hit }}" == "true" ]]; then
           echo "::error::Cache key '${{ env.CACHE_KEY }}' already exists. Cannot proceed with downloading."
           echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
-          echo "> Cache key \`${{ env.CACHE_KEY }}\` already exists. Cannot proceed with downloading." >> $GITHUB_STEP_SUMMARY
+          echo "> Cache key '${{ env.CACHE_KEY }}' already exists. Cannot proceed with downloading." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "> [!TIP]" >> $GITHUB_STEP_SUMMARY
           echo "> Either use a different \`cache_key\` value or delete the existing cache entry from the [Action Caches](/${{ github.repository }}/actions/caches) page and run the workflow again." >> $GITHUB_STEP_SUMMARY
@@ -70,7 +70,8 @@ runs:
     - name: "Check out the repo"
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-    - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+    - name: "Set up the .NET SDK"
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
       with:
         dotnet-version: "9.0.x"
 
@@ -81,13 +82,13 @@ runs:
           ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
           ${{ format('--{0}-data "{1}"', inputs.type, env.DATA_PATH) }} \
-          ${{ (inputs.excluded_authors != null && format('--excluded-authors {1}', inputs.excluded_authors)) || '' }} \
-          ${{ (inputs.limit && format('--{0}-limit {1}', inputs.type, inputs.limit)) || '' }} \
-          ${{ (inputs.page_size && format('--page-size {0}', inputs.page_size)) || '' }} \
-          ${{ (inputs.page_limit && format('--page-limit {0}', inputs.page_limit)) || '' }} \
-          ${{ (inputs.retries && format('--retries "{0}"', inputs.retries)) || '' }}
+          ${{ (inputs.excluded_authors != null && format('--excluded-authors {1}', inputs.excluded_authors)) || "" }} \
+          ${{ (inputs.limit && format('--{0}-limit {1}', inputs.type, inputs.limit)) || "" }} \
+          ${{ (inputs.page_size && format('--page-size {0}', inputs.page_size)) || "" }} \
+          ${{ (inputs.page_limit && format('--page-limit {0}', inputs.page_limit)) || "" }} \
+          ${{ (inputs.retries && format('--retries "{0}"', inputs.retries)) || "" }}
 
-    - name: "Save Cache"
+    - name: "Save the Downloaded Data to Cache"
       uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
         path: ${{ env.DATA_PATH }}
@@ -97,5 +98,5 @@ runs:
       shell: bash
       run: |
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "## ${{ inputs.type == 'issues' && 'Issues' || 'Pull Requests' }} Data Available as \`${{ inputs.cache_key }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "The \`${{ inputs.cache_key }}\` data is saved to cache and available for training a model." >> $GITHUB_STEP_SUMMARY
+        echo "## ${{ inputs.type == 'issues' && 'Issues' || 'Pull Requests' }} Data Available as '${{ inputs.cache_key }}'" >> $GITHUB_STEP_SUMMARY
+        echo "The '${{ inputs.cache_key }}' data is saved to cache and available for training a model." >> $GITHUB_STEP_SUMMARY
