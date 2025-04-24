@@ -19,22 +19,22 @@ on:
 jobs:
   issues:
     # Do not run the job on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == 'jeffhandley' }}
+    if: ${{ github.repository_owner == "jeffhandley" }}
     runs-on: ubuntu-latest
     steps:
       - uses: jeffhandley/issue-labeler/restore@main
         with:
           type: issues
-          cache_key: ${{ inputs.cache_key || 'ACTIVE' }}
+          cache_key: ${{ inputs.cache_key || "ACTIVE" }}
           fail-on-cache-miss: true
 
   pulls:
     # Do not run the job on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == 'jeffhandley' }}
+    if: ${{ github.repository_owner == "jeffhandley" }}
     runs-on: ubuntu-latest
     steps:
       - uses: jeffhandley/issue-labeler/restore@main
         with:
           type: pulls
-          cache_key: ${{ inputs.cache_key || 'ACTIVE' }}
+          cache_key: ${{ inputs.cache_key || "ACTIVE" }}
           fail-on-cache-miss: true

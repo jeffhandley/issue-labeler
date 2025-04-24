@@ -14,7 +14,7 @@ on:
         type: boolean
         required: true
       staged_key:
-        description: "The cache key suffix to use for promoting a staged model to ACTIVE"
+        description: "The cache key suffix to use for promoting a staged model to 'ACTIVE'"
         type: string
         required: true
         default: "staged"

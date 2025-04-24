@@ -13,7 +13,7 @@ on:
         type: string
         required: true
       cache_key:
-        description: "The cache key suffix to use for loading the model"
+        description: "The cache key suffix to use for loading the model, using 'ACTIVE' by default"
         type: string
         required: true
         default: "ACTIVE"
@@ -27,7 +27,7 @@ env:
 jobs:
   predict-issue-label:
     # Do not run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == 'jeffhandley' }}
+    if: ${{ github.repository_owner == "jeffhandley" }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -37,11 +37,11 @@ jobs:
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: issues
-          fail-on-cache-miss: ${{ github.event_name == 'workflow_dispatch' }}
+          fail-on-cache-miss: ${{ github.event_name == "workflow_dispatch" }}
 
       - name: "Predict issue labels"
         id: prediction
-        if: ${{ steps.restore-model.outputs.cache-hit == 'true' }}
+        if: ${{ steps.restore-model.outputs.cache-hit == "true" }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           issues:           ${{ inputs.issues || github.event.issue.number }}

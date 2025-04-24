@@ -7,22 +7,22 @@ on:
         description: "Issues or Pull Requests"
         type: choice
         required: true
-        default: Both
+        default: "Both"
         options:
-          - Both
-          - Issues
-          - Pulls
+          - "Both"
+          - "Issues"
+          - "Pull Requests"
 
       steps:
         description: "Training Steps"
         type: choice
         required: true
-        default: All
+        default: "All"
         options:
-          - All
-          - Download Data
-          - Train Model
-          - Test Model
+          - "All"
+          - "Download Data"
+          - "Train Model"
+          - "Test Model"
 
       repository:
         description: "The org/repo to download data from (defaults to current repository)"
@@ -31,7 +31,7 @@ on:
         description: "Max number of items to download for training/testing the model (newest items are used)"
         type: number
       page_size:
-        description: "The number of items to include on each request."
+        description: "The number of items to include on each request"
         type: number
       cache_key_suffix:
         description: "The cache key suffix to use for staged data/models (use 'ACTIVE' to bypass staging)"
@@ -43,76 +43,30 @@ env:
   CACHE_KEY: ${{ inputs.cache_key_suffix }}
   REPOSITORY: ${{ inputs.repository || github.repository }}
   LABEL_PREFIX: "area-"
-  EXCLUDED_AUTHORS: null
+  EXCLUDED_AUTHORS: "null"
   THRESHOLD: "0.40"
   LIMIT: ${{ inputs.limit }}
   PAGE_SIZE: ${{ inputs.page_size }}
+  JOB_DOWNLOAD: ${{ inputs.steps in ["All", "Download Data"] }}
+  JOB_TRAIN: ${{ inputs.steps in ["All", "Train Model"] }}
+  JOB_TEST: ${{ inputs.steps in ["All", "Test Model"] }}
 
 jobs:
-  download-issues:
-    if: ${{ (inputs.type == 'Both' || inputs.type == 'Issues') && (inputs.steps == 'All' || inputs.steps == 'Download Data') }}
+  download:
+    strategy:
+      fail-fast: false
+      matrix:
+        type: ["issues", "pulls"]
+    runs-on: ubuntu-latest
     permissions:
       issues: read
-      actions: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Issues: Download Data"
-        uses: jeffhandley/issue-labeler/download@main
-        with:
-          type: "issues"
-          cache_key: ${{ env.CACHE_KEY }}
-          repository: ${{ env.REPOSITORY }}
-          label_prefix: ${{ env.LABEL_PREFIX }}
-          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
-          limit: ${{ env.LIMIT }}
-          page_size: ${{ env.PAGE_SIZE }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  train-issues:
-    needs: download-issues
-    if: ${{ (inputs.type == 'Both' || inputs.type == 'Issues') && (inputs.steps == 'All' || inputs.steps == 'Train Model') && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') }}
-    permissions:
-      actions: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Issues: Train Model"
-        uses: jeffhandley/issue-labeler/train@main
-        with:
-          type: "issues"
-          data_cache_key: ${{ env.CACHE_KEY }}
-          model_cache_key: ${{ env.CACHE_KEY }}
-
-  test-issues:
-    needs: [download-issues, train-issues]
-    if: ${{ (inputs.type == 'Both' || inputs.type == 'Issues') && (inputs.steps == 'All' || inputs.steps == 'Test Model') && always() && (needs.download-issues.result == 'success' || needs.download-issues.result == 'skipped') && (needs.train-issues.result == 'success' || needs.train-issues.result == 'skipped') }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Issues: Test Model"
-        uses: jeffhandley/issue-labeler/test@main
-        with:
-          type: "issues"
-          cache_key: ${{ env.CACHE_KEY }}
-          repository: ${{ env.REPOSITORY }}
-          label_prefix: ${{ env.LABEL_PREFIX }}
-          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
-          threshold: ${{ env.THRESHOLD }}
-          limit: ${{ env.LIMIT }}
-          page_size: ${{ env.PAGE_SIZE }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  download-pulls:
-    if: ${{ (inputs.type == 'Both' || inputs.type == 'Pulls') && (inputs.steps == 'All' || inputs.steps == 'Download Data') }}
-    permissions:
       pull-requests: read
-      actions: write
-    runs-on: ubuntu-latest
+    if: ${{ env.JOB_DOWNLOAD }}
     steps:
-      - name: "Issues: Download Data"
+      - name: "Download Data for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
         uses: jeffhandley/issue-labeler/download@main
         with:
-          type: "pulls"
+          type: ${{ matrix.type }}
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
@@ -120,31 +74,41 @@ jobs:
           limit: ${{ env.LIMIT }}
           page_size: ${{ env.PAGE_SIZE }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
-  train-pulls:
-    needs: download-pulls
-    if: ${{ (inputs.type == 'Both' || inputs.type == 'Pulls') && (inputs.steps == 'All' || inputs.steps == 'Train Model') && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') }}
-    permissions:
-      actions: write
+  train:
+    strategy:
+      fail-fast: false
+      matrix:
+        type: ["issues", "pulls"]
     runs-on: ubuntu-latest
+    permissions: {}
+    needs: download
+    if: ${{ env.JOB_TRAIN && (needs.download.result == "success" || !env.JOB_DOWNLOAD) }}
     steps:
-      - name: "Issues: Train Model"
+      - name: "Train Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
         uses: jeffhandley/issue-labeler/train@main
         with:
-          type: "pulls"
+          type: ${{ matrix.type }}
           data_cache_key: ${{ env.CACHE_KEY }}
           model_cache_key: ${{ env.CACHE_KEY }}
 
-  test-pulls:
-    needs: [download-pulls, train-pulls]
-    if: ${{ (inputs.type == 'Both' || inputs.type == 'Pulls') && (inputs.steps == 'All' || inputs.steps == 'Test Model') && always() && (needs.download-pulls.result == 'success' || needs.download-pulls.result == 'skipped') && (needs.train-pulls.result == 'success' || needs.train-pulls.result == 'skipped') }}
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        type: ["issues", "pulls"]
     runs-on: ubuntu-latest
+    permissions:
+      issues: read
+      pull-requests: read
+    needs: train
+    if: ${{ env.JOB_TEST && (needs.train.result == "success" || !env.JOB_TRAIN) }}
     steps:
-      - name: "Issues: Test Model"
+      - name: "Test Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
         uses: jeffhandley/issue-labeler/test@main
         with:
-          type: "pulls"
+          type: ${{ matrix.type }}
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
@@ -153,4 +117,4 @@ jobs:
           limit: ${{ env.LIMIT }}
           page_size: ${{ env.PAGE_SIZE }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}

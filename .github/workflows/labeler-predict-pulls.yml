@@ -18,11 +18,11 @@ on:
   workflow_dispatch:
     inputs:
       pulls:
-        description: "Pull Numbers (comma-separated list of ranges)"
+        description: "Pull Request Numbers (comma-separated list of ranges)"
         type: string
         required: true
       cache_key:
-        description: "The cache key suffix to use for loading the model"
+        description: "The cache key suffix to use for loading the model, using 'ACTIVE' by default"
         type: string
         required: true
         default: "ACTIVE"
@@ -36,7 +36,7 @@ env:
 jobs:
   predict-pull-label:
     # Do not run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.repository_owner == 'jeffhandley' }}
+    if: ${{ github.repository_owner == "jeffhandley" }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -46,11 +46,11 @@ jobs:
         uses: jeffhandley/issue-labeler/restore@main
         with:
           type: pulls
-          fail-on-cache-miss: ${{ github.event_name == 'workflow_dispatch' }}
+          fail-on-cache-miss: ${{ github.event_name == "workflow_dispatch" }}
 
       - name: "Predict pull labels"
         id: prediction
-        if: ${{ steps.restore-model.outputs.cache-hit == 'true' }}
+        if: ${{ steps.restore-model.outputs.cache-hit == "true" }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           pulls:            ${{ inputs.pulls || github.event.number }}
