@@ -26,23 +26,25 @@ permissions:
   actions: write
 
 jobs:
-  promote:
+  promote-issues:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - type: "issues"
-            promote: ${{ inputs.issues && 'enabled' || 'disabled' }}
-          - type: "pulls"
-            promote: ${{ inputs.pulls && 'enabled' || 'disabled' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: "Promote ${{ matrix.type }} Model"
-        if: ${{ matrix.promote == 'enabled' }}
+      - name: "Promote Model for Issues"
         uses: ./promote
         with:
-          type: ${{ matrix.type }}
+          type: "issues"
+          staged_key: ${{ inputs.staged_key }}
+          backup_key: ${{ inputs.backup_key }}
+
+  promote-pulls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: "Promote Model for Pull Requests"
+        uses: ./promote
+        with:
+          type: "pulls"
           staged_key: ${{ inputs.staged_key }}
           backup_key: ${{ inputs.backup_key }}
 

@@ -62,7 +62,7 @@ jobs:
       - name: "Download Issues"
         uses: ./download
         with:
-          type: ${{ matrix.type }}
+          type: "issues"
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
@@ -83,7 +83,7 @@ jobs:
       - name: "Download Pull Requests"
         uses: ./download
         with:
-          type: "issues"
+          type: "pulls"
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
@@ -133,7 +133,7 @@ jobs:
       - name: "Test Model for Issues"
         uses: ./test
         with:
-          type: ${{ matrix.type }}
+          type: "issues"
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
@@ -156,7 +156,7 @@ jobs:
       - name: "Test Model for Pull Requests"
         uses: ./test
         with:
-          type: ${{ matrix.type }}
+          type: "pulls"
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
