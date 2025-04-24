@@ -1,0 +1,130 @@
+name: "Promote Model"
+description: "Promote a model from staging to 'ACTIVE', backing up the currently 'ACTIVE' model."
+
+inputs:
+  type:
+    description: "The model to promote. Must be 'issues' or 'pulls'."
+    required: true
+
+  staged_key:
+    description: "The suffix for the staged cache entry to promote. Defaults to 'staged'."
+    required: false
+    default: "staged"
+
+  backup_key:
+    description: "The suffix for the backup cache entry. Defaults to 'backup'."
+    required: false
+    default: "backup"
+
+branding:
+  color: "purple"
+  icon: "arrow-up"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Validate Inputs"
+      shell: bash
+      run: |
+        if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
+          echo "::error::'type' must be either 'issues' or 'pulls'. Value provided: '${{ inputs.type }}'."
+          echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
+          echo "\`type\` must be either 'issues' or 'pulls'." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+    - name: "Set Environment Variables"
+      shell: bash
+      run: |
+        echo "CACHE_PATH=labeler-cache/${{ inputs.type }}-model.zip" >> $GITHUB_ENV
+        echo "STAGED_KEY=issue-labeler/model/${{ inputs.type }}/${{ inputs.staged_key || 'staged' }}" >> $GITHUB_ENV
+        echo "ACTIVE_KEY=issue-labeler/model/${{ inputs.type }}/ACTIVE" >> $GITHUB_ENV
+        echo "BACKUP_KEY=issue-labeler/model/${{ inputs.type }}/${{ inputs.backup_key }}" >> $GITHUB_ENV
+
+    - name: "Check for Existing Staged Cache Entry"
+      id: check-staged
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ${{ env.CACHE_PATH }}
+        key: ${{ env.STAGED_KEY }}
+        lookup-only: true
+        fail-on-cache-miss: true
+
+    - name: "Check for Existing Backup Cache Entry"
+      if: ${{ steps.check-staged.outputs.cache-hit == 'true' }}
+      id: check-backup
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ${{ env.CACHE_PATH }}
+        key: ${{ env.BACKUP_KEY }}
+        lookup-only: true
+        fail-on-cache-miss: false
+
+    - name: "Restore Existing Active Cache Entry"
+      if: ${{ steps.check-staged.outputs.cache-hit == 'true' }}
+      id: check-active
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ${{ env.CACHE_PATH }}
+        key: ${{ env.ACTIVE_KEY }}
+        fail-on-cache-miss: false
+
+    - name: "Abort if Backup Cache Entry Already Exists"
+      if: ${{ steps.check-active.outputs.cache-hit == 'true' && steps.check-backup.outputs.cache-hit == 'true' }}
+      shell: bash
+      run: |
+        echo "::error::Backup cache key '${{ env.BACKUP_KEY }}' already exists. Cannot proceed with promotion."
+        echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
+        echo "Backup cache key '${{ env.BACKUP_KEY }}' already exists. Cannot proceed with promotion." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "> [!TIP]" >> $GITHUB_STEP_SUMMARY
+        echo "> Either use a different \`backup_key\` value or delete the existing cache entry from the [Action Caches](/${{ github.repository }}/actions/caches) page and run the workflow again." >> $GITHUB_STEP_SUMMARY
+        exit 1
+
+    - name: "Cache Backup of Current Active Cache Entry"
+      if: ${{ steps.check-active.outputs.cache-hit == 'true' }}
+      id: backup-file
+      uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ${{ env.CACHE_PATH }}
+        key: ${{ env.BACKUP_KEY }}
+
+    - name: "Remove Local Copy of Current Active Cache Entry"
+      if: ${{ steps.check-active.outputs.cache-hit == 'true' }}
+      shell: bash
+      run: |
+        rm ${{ env.CACHE_PATH }}
+
+    - name: "Restore the Staged Cache Entry to Promote"
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ${{ env.CACHE_PATH }}
+        key: ${{ env.STAGED_KEY }}
+        fail-on-cache-miss: true
+
+    - name: "Delete Existing Active Cache Entry"
+      if: ${{ steps.check-active.outputs.cache-hit == 'true' }}
+      shell: bash
+      run: |
+        gh cache delete "${{ env.ACTIVE_KEY }}"
+      env:
+        GH_TOKEN: ${{ github.token }}
+
+    - name: "Save the Staged Cache Entry as the ACTIVE Cache Entry"
+      uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ${{ env.CACHE_PATH }}
+        key: ${{ env.ACTIVE_KEY }}
+
+    - name: "Write Summary"
+      shell: bash
+      run: |
+        echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
+        echo "> The ${{ inputs.type == 'issues' && 'Issues' || 'Pull Requests' }} model was promoted from '${{ env.STAGED_KEY }}' to 'ACTIVE'." >> $GITHUB_STEP_SUMMARY
+
+        if [[ "${{ steps.check-active.outputs.cache-hit }}" == "true" ]]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
+          echo "> The previous 'ACTIVE' ${{ inputs.type == 'issues' && 'Issues' || 'Pull Requests' }} model was backed up as '${{ env.BACKUP_KEY }}'." >> $GITHUB_STEP_SUMMARY
+          echo "> If the previous model needs to be restored, promote '${{ env.BACKUP_KEY }}' and supply a different \`backup_key\`." >> $GITHUB_STEP_SUMMARY
+        fi

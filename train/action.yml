@@ -1,0 +1,98 @@
+name: "Train Model"
+description: "Train the Issues or Pull Requests model for label prediction."
+
+inputs:
+  type:
+    description: "The model to train. Must be either 'issues' or 'pulls'."
+    required: true
+  data_cache_key:
+    description: "The cache key suffix to use for the downloaded data. Defaults to 'staged'."
+    default: staged
+  model_cache_key:
+    description: "The cache key suffix to use for the trained model. Defaults to 'staged'."
+    default: staged
+
+branding:
+  color: "purple"
+  icon: "tag"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Validate Inputs"
+      shell: bash
+      run: |
+        if [[ "${{ inputs.type }}" != "issues" && "${{ inputs.type }}" != "pulls" ]]; then
+          echo "::error::'type' must be either 'issues' or 'pulls'. Value provided: '${{ inputs.type }}'."
+          echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
+          echo "\`type\` must be either 'issues' or 'pulls'." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+    - name: "Set Cache Variables"
+      shell: bash
+      run: |
+        echo "DATA_PATH=labeler-cache/${{ inputs.type }}-data.tsv" >> $GITHUB_ENV
+        echo "DATA_CACHE_KEY=${{ format('issue-labeler/data/{0}/{1}', inputs.type, inputs.data_cache_key) }}" >> $GITHUB_ENV
+        echo "MODEL_PATH=labeler-cache/${{ inputs.type }}-model.zip" >> $GITHUB_ENV
+        echo "MODEL_CACHE_KEY=${{ format('issue-labeler/model/{0}/{1}', inputs.type, inputs.model_cache_key) }}" >> $GITHUB_ENV
+
+    - name: "Check for an existing model"
+      id: check-cache
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ${{ env.MODEL_PATH }}
+        key: ${{ env.MODEL_CACHE_KEY }}
+        lookup-only: true
+
+    - name: "Abort if there is an existing model with the specified cache key"
+      shell: bash
+      run: |
+        if [[ "${{ steps.check-cache.outputs.cache-hit }}" == "true" ]]; then
+          echo "::error::Cache key '${{ env.MODEL_CACHE_KEY }}' already exists. Cannot proceed with training."
+          echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
+          echo "Cache key '${{ env.MODEL_CACHE_KEY }}' already exists. Cannot proceed with training." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> [!TIP]" >> $GITHUB_STEP_SUMMARY
+          echo "Use a different \`model_cache_key\` value or delete the existing cache entry from the [Action Caches](/${{ github.repository }}/actions/caches) page and run the workflow again." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    - name: "Restore Data from Cache"
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ${{ env.DATA_PATH }}
+        key: ${{ env.DATA_CACHE_KEY }}
+        fail-on-cache-miss: true
+
+    - name: "Set up the .NET SDK"
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+      with:
+        dotnet-version: 9.0.x
+
+    - name: "Run Trainer"
+      shell: bash
+      run: |
+        dotnet run -c Release --project IssueLabeler/src/Trainer -- \
+          ${{ format('--{0}-data "{1}"', inputs.type, env.DATA_PATH) }} \
+          ${{ format('--{0}-model "{1}"', inputs.type, env.MODEL_PATH) }}
+
+    - name: "Save Model to Cache"
+      uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: ${{ env.MODEL_PATH }}
+        key: ${{ env.MODEL_CACHE_KEY }}
+
+    - name: "Write Final Summary"
+      shell: bash
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## ${{ inputs.type == 'issues' && 'Issues' || 'Pull Requests' }} Model Available as '${{ inputs.model_cache_key }}'." >> $GITHUB_STEP_SUMMARY
+
+        if [[ "${{ inputs.model_cache_key }}" == "ACTIVE" ]]; then
+          echo "Label predictions will now use this model." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "The '${{ inputs.model_cache_key }}' model is saved to cache and available to test or promote." >> $GITHUB_STEP_SUMMARY
+        fi

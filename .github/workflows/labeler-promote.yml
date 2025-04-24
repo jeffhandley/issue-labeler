@@ -1,42 +1,51 @@
-name: "Labeler: Promote Models"
+name: "Labeler: Promotion"
+description: "Promote a model from staging to 'ACTIVE', backing up the currently 'ACTIVE' model."
 
 on:
   # Dispatched via the Actions UI, promotes the staged models from
-  # a staging slot into the prediction environment
+  # a staged slot into the prediction environment
   workflow_dispatch:
     inputs:
-      promote_issues:
+      issues:
         description: "Issues: Promote Model"
         type: boolean
         required: true
-      promote_pulls:
+      pulls:
         description: "Pulls: Promote Model"
         type: boolean
         required: true
-      model_cache_key:
-        description: "The cache key suffix to promote into the 'LIVE' cache"
-        type: string
+      staged_key:
+        description: "The cache key suffix to use for promoting a staged model to 'ACTIVE'. Defaults to 'staged'."
         required: true
-        default: "staging"
-      backup_cache_key:
-        description: "The cache key suffix to use for backing up the currently promoted model"
-        type: string
+        default: "staged"
+      backup_key:
+        description: "The cache key suffix to use for backing up the currently active model. Defaults to 'backup'."
         default: "backup"
 
 permissions:
   actions: write
 
 jobs:
-  labeler-promote-issues:
-    if: ${{ inputs.promote_issues }}
-    uses: dotnet/issue-labeler/.github/workflows/promote-issues.yml@f0c098669828a134c0313adf3f58c1909e555d86 # v1.0.1
-    with:
-      model_cache_key: ${{ inputs.model_cache_key }}
-      backup_cache_key: ${{ inputs.backup_cache_key }}
+  promote-issues:
+    if: ${{ inputs.issues }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: "Promote Model for Issues"
+        uses: ./promote
+        with:
+          type: "issues"
+          staged_key: ${{ inputs.staged_key }}
+          backup_key: ${{ inputs.backup_key }}
 
-  labeler-promote-pulls:
-    if: ${{ inputs.promote_pulls }}
-    uses: dotnet/issue-labeler/.github/workflows/promote-pulls.yml@f0c098669828a134c0313adf3f58c1909e555d86 # v1.0.1
-    with:
-      model_cache_key: ${{ inputs.model_cache_key }}
-      backup_cache_key: ${{ inputs.backup_cache_key }}
+  promote-pulls:
+    if: ${{ inputs.pulls }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: "Promote Model for Pull Requests"
+        uses: ./promote
+        with:
+          type: "pulls"
+          staged_key: ${{ inputs.staged_key }}
+          backup_key: ${{ inputs.backup_key }}
