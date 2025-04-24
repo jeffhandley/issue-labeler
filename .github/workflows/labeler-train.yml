@@ -95,7 +95,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   train-issues:
-    if: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && contains(fromJSON('["All", "Train Model"]'), inputs.steps) && contains(fromJSON('["success", "skipped"]'), needs.download-issues.result) }}
+    if: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && contains(fromJSON('["All", "Train Model"]'), inputs.steps) && (needs.download-issues.result == 'success' || !contains(fromJSON('["All", "Download Data"]'), inputs.steps)) }}
     runs-on: ubuntu-latest
     permissions: {}
     needs: download-issues
@@ -109,7 +109,7 @@ jobs:
           model_cache_key: ${{ env.CACHE_KEY }}
 
   train-pulls:
-    if: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && contains(fromJSON('["All", "Train Model"]'), inputs.steps) && contains(fromJSON('["success", "skipped"]'), needs.download-pulls.result) }}
+    if: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && contains(fromJSON('["All", "Train Model"]'), inputs.steps) && (needs.download-pulls.result == 'success' || !contains(fromJSON('["All", "Download Data"]'), inputs.steps)) }}
     runs-on: ubuntu-latest
     permissions: {}
     needs: download-pulls
@@ -123,7 +123,7 @@ jobs:
           model_cache_key: ${{ env.CACHE_KEY }}
 
   test-issues:
-    if: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && contains(fromJSON('["All", "Test Model"]'), inputs.steps) && contains(fromJSON('["success", "skipped"]'), needs.train-issues.result) }}
+    if: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && contains(fromJSON('["All", "Test Model"]'), inputs.steps) && (needs.train-issues.result == 'success' || !contains(fromJSON('["All", "Train Model"]'), inputs.steps)) }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
@@ -146,7 +146,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   test-pulls:
-    if: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && contains(fromJSON('["All", "Test Model"]'), inputs.steps) && contains(fromJSON('["success", "skipped"]'), needs.train-pulls.result) }}
+    if: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && contains(fromJSON('["All", "Test Model"]'), inputs.steps) && (needs.train-pulls.result == 'success' || !contains(fromJSON('["All", "Train Model"]'), inputs.steps)) }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
