@@ -144,7 +144,7 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
 
     if (applicableLabel is not null)
     {
-        predictionResults.Add(summary => summary.AddRawMarkdown($"    - No prediction needed. Applicable label '{applicableLabel}' already exists.", true));
+        predictionResults.Add(summary => summary.AddRawMarkdown($"    - No prediction needed. Applicable label `{applicableLabel}` already exists.", true));
 
         if (hasDefaultLabel && defaultLabel is not null)
         {
@@ -155,13 +155,13 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
 
             if (error is null)
             {
-                predictionResults.Add(summary => summary.AddRawMarkdown($"    - Removed default label '{defaultLabel}'.", true));
+                predictionResults.Add(summary => summary.AddRawMarkdown($"    - Removed default label `{defaultLabel}`.", true));
                 resultMessageParts.Add($"Default label '{defaultLabel}' removed.");
                 return Success();
             }
             else
             {
-                predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error removing default label '{defaultLabel}'**: {error}", true));
+                predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error removing default label `{defaultLabel}`**: {error}", true));
                 resultMessageParts.Add($"Error occurred removing default label '{defaultLabel}'");
                 return Failure();
             }
@@ -199,16 +199,16 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
 
     if (bestScore is not null)
     {
-        predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Predicted label: `{bestScore.Label}` meets the threshold of {argsData.Threshold}.**", true));
+        predictionResults.Add(summary => summary.AddRawMarkdown($"    - Predicted label: `{bestScore.Label}` meets the threshold of {argsData.Threshold}.", true));
     }
     else
     {
-        predictionResults.Add(summary => summary.AddRawMarkdown($"    - **No label prediction met the threshold of {argsData.Threshold}.**", true));
+        predictionResults.Add(summary => summary.AddRawMarkdown($"    - No label prediction met the threshold of {argsData.Threshold}.", true));
     }
 
     foreach (var labelPrediction in predictions)
     {
-        predictionResults.Add(summary => summary.AddRawMarkdown($"        - '{labelPrediction.Label}' - Score: {labelPrediction.Score}", true));
+        predictionResults.Add(summary => summary.AddRawMarkdown($"        - `{labelPrediction.Label}` - Score: {labelPrediction.Score}", true));
     }
 
     if (bestScore is not null)
@@ -220,7 +220,7 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
 
         if (error is null)
         {
-            predictionResults.Add(summary => summary.AddRawMarkdown($"    - `{bestScore.Label}` applied", true));
+            predictionResults.Add(summary => summary.AddRawMarkdown($"    - **`{bestScore.Label}` applied**", true));
             resultMessageParts.Add($"Label '{bestScore.Label}' applied.");
 
             if (hasDefaultLabel && defaultLabel is not null)
@@ -232,7 +232,7 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
 
                 if (error is null)
                 {
-                    predictionResults.Add(summary => summary.AddRawMarkdown($"    - Removed default label `{defaultLabel}`", true));
+                    predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Removed default label `{defaultLabel}`**", true));
                     resultMessageParts.Add($"Default label '{defaultLabel}' removed.");
                     return Success();
                 }
@@ -250,7 +250,7 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
         }
         else
         {
-            predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error adding label `{bestScore.Label}`**: {error}", true));
+            predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error applying label `{bestScore.Label}`**: {error}", true));
             resultMessageParts.Add($"Error occurred applying label '{bestScore.Label}'");
             return Failure();
         }
@@ -273,13 +273,13 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
 
             if (error is null)
             {
-                predictionResults.Add(summary => summary.AddRawMarkdown($"    - Default label `{defaultLabel}` applied.", true));
+                predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Default label `{defaultLabel}` applied.**", true));
                 resultMessageParts.Add($"No prediction made. Default label '{defaultLabel}' applied.");
                 return Success();
             }
             else
             {
-                predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error adding default label `{defaultLabel}`**: {error}", true));
+                predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error applying default label `{defaultLabel}`**: {error}", true));
                 resultMessageParts.Add($"Error occurred applying default label '{defaultLabel}'");
                 return Failure();
             }
