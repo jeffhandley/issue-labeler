@@ -51,11 +51,9 @@ env:
   PAGE_SIZE: ${{ inputs.page_size }}
   PAGE_LIMIT: ${{ inputs.page_limit }}
 
-  JOB_ISSUES: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type)}}
-  JOB_PULLS: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type)}}
-  JOB_DOWNLOAD: ${{ contains(fromJSON('["All", "Download Data"]'), inputs.steps)}}
-  JOB_TRAIN: ${{ contains(fromJSON('["All", "Train Model"]'), inputs.steps)}}
-  JOB_TEST: ${{ contains(fromJSON('["All", "Test Model"]'), inputs.steps)}}
+  JOB_DOWNLOAD: ${{ contains(fromJSON('["All", "Download Data"]'), inputs.steps) }}
+  JOB_TRAIN: ${{ contains(fromJSON('["All", "Train Model"]'), inputs.steps) }}
+  JOB_TEST: ${{ contains(fromJSON('["All", "Test Model"]'), inputs.steps) }}
 
 jobs:
   download:
@@ -64,9 +62,9 @@ jobs:
       matrix:
         include:
           - type: issues
-            run: ${{ env.JOB_ISSUES }}
+            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) }}
           - type: pulls
-            run: ${{ env.JOB_PULLS }}
+            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
@@ -93,9 +91,9 @@ jobs:
       matrix:
         include:
           - type: "issues"
-            run: ${{ env.JOB_ISSUES }}
+            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) }}
           - type: "pulls"
-            run: ${{ env.JOB_PULLS }}
+            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) }}
     runs-on: ubuntu-latest
     permissions: {}
     needs: download
@@ -114,9 +112,9 @@ jobs:
       matrix:
         include:
           - type: "issues"
-            run: ${{ env.JOB_ISSUES }}
+            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) }}
           - type: "pulls"
-            run: ${{ env.JOB_PULLS }}
+            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
