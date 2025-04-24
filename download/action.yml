@@ -82,11 +82,11 @@ runs:
           ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
           ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
           ${{ format('--{0}-data "{1}"', inputs.type, env.DATA_PATH) }} \
-          ${{ (inputs.excluded_authors != null && format('--excluded-authors {1}', inputs.excluded_authors)) || "" }} \
-          ${{ (inputs.limit && format('--{0}-limit {1}', inputs.type, inputs.limit)) || "" }} \
-          ${{ (inputs.page_size && format('--page-size {0}', inputs.page_size)) || "" }} \
-          ${{ (inputs.page_limit && format('--page-limit {0}', inputs.page_limit)) || "" }} \
-          ${{ (inputs.retries && format('--retries "{0}"', inputs.retries)) || "" }}
+          ${{ (inputs.excluded_authors != null && format('--excluded-authors {0}', inputs.excluded_authors)) || '' }} \
+          ${{ (inputs.limit && format('--{0}-limit {1}', inputs.type, inputs.limit)) || '' }} \
+          ${{ (inputs.page_size && format('--page-size {0}', inputs.page_size)) || '' }} \
+          ${{ (inputs.page_limit && format('--page-limit {0}', inputs.page_limit)) || '' }} \
+          ${{ (inputs.retries && format('--retries "{0}"', inputs.retries)) || '' }}
 
     - name: "Save the Downloaded Data to Cache"
       uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3

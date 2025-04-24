@@ -36,9 +36,9 @@ jobs:
             promote: ${{ inputs.issues }}
           - type: "pulls"
             promote: ${{ inputs.pulls }}
-    if: ${{ matrix.promote }}
     steps:
       - name: "Promote ${{ matrix.type }} Model"
+        if: ${{ matrix.promote }}
         uses: jeffhandley/issue-labeler/promote@main
         with:
           type: ${{ matrix.type }}
