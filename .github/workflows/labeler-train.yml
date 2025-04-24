@@ -51,10 +51,6 @@ env:
   PAGE_SIZE: ${{ inputs.page_size }}
   PAGE_LIMIT: ${{ inputs.page_limit }}
 
-  JOB_DOWNLOAD: ${{ contains(fromJSON('["All", "Download Data"]'), inputs.steps) }}
-  JOB_TRAIN: ${{ contains(fromJSON('["All", "Train Model"]'), inputs.steps) }}
-  JOB_TEST: ${{ contains(fromJSON('["All", "Test Model"]'), inputs.steps) }}
-
 jobs:
   download:
     strategy:
@@ -69,7 +65,7 @@ jobs:
     permissions:
       issues: read
       pull-requests: read
-    if: ${{ env.JOB_DOWNLOAD && matrix.run }}
+    if: ${{ contains(fromJSON('["All", "Download Data"]'), inputs.steps) && matrix.run }}
     steps:
       - name: "Download Data for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
         uses: jeffhandley/issue-labeler/download@main
@@ -97,7 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     needs: download
-    if: ${{ env.JOB_TRAIN && matrix.run && (needs.download.result == 'success' || !env.JOB_DOWNLOAD) }}
+    if: ${{ contains(fromJSON('["All", "Train Model"]'), inputs.steps) && matrix.run && (needs.download.result == 'success' || !contains(fromJSON('["All", "Download Data"]'), inputs.steps)) }}
     steps:
       - name: "Train Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
         uses: jeffhandley/issue-labeler/train@main
@@ -120,7 +116,7 @@ jobs:
       issues: read
       pull-requests: read
     needs: train
-    if: ${{ env.JOB_TEST && matrix.run && (needs.train.result == 'success' || !env.JOB_TRAIN) }}
+    if: ${{ contains(fromJSON('["All", "Test Model"]'), inputs.steps) && matrix.run && (needs.train.result == 'success' || !contains(fromJSON('["All", "Train Model"]'), inputs.steps)) }}
     steps:
       - name: "Test Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
         uses: jeffhandley/issue-labeler/test@main
