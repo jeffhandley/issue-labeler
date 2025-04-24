@@ -58,6 +58,7 @@ jobs:
     permissions:
       issues: read
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: "Download Issues"
         uses: ./download
         with:
@@ -78,6 +79,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: "Download Pull Requests"
         uses: ./download
         with:
@@ -98,6 +100,7 @@ jobs:
     permissions: {}
     needs: download-issues
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: "Train Model for Issues"
         uses: ./train
         with:
@@ -111,6 +114,7 @@ jobs:
     permissions: {}
     needs: download-pulls
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: "Train Model for Pull Requests"
         uses: ./train
         with:
@@ -125,6 +129,7 @@ jobs:
       issues: read
     needs: train-issues
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: "Test Model for Issues"
         uses: ./test
         with:
@@ -147,6 +152,7 @@ jobs:
       pull-requests: read
     needs: train-pulls
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: "Test Model for Pull Requests"
         uses: ./test
         with:

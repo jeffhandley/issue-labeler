@@ -37,9 +37,10 @@ jobs:
           - type: "pulls"
             promote: ${{ inputs.pulls && 'enabled' || 'disabled' }}
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: "Promote ${{ matrix.type }} Model"
         if: ${{ matrix.promote == 'enabled' }}
-        uses: jeffhandley/issue-labeler/promote@main
+        uses: ./promote
         with:
           type: ${{ matrix.type }}
           staged_key: ${{ inputs.staged_key }}
