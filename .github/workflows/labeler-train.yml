@@ -52,23 +52,14 @@ env:
   PAGE_LIMIT: ${{ inputs.page_limit }}
 
 jobs:
-  download:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - type: issues
-            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && 'enabled' || 'disabled' }}
-          - type: pulls
-            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && 'enabled' || 'disabled' }}
+  download-issues:
+    if: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && contains(fromJSON('["All", "Download Data"]'), inputs.steps) }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
-      pull-requests: read
     steps:
-      - name: "Download Data for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
-        if: ${{ contains(fromJSON('["All", "Download Data"]'), inputs.steps) && matrix.run == 'enabled' }}
-        uses: jeffhandley/issue-labeler/download@main
+      - name: "Download Issues"
+        uses: ./download
         with:
           type: ${{ matrix.type }}
           cache_key: ${{ env.CACHE_KEY }}
@@ -81,45 +72,83 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-  train:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - type: "issues"
-            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && 'enabled' || 'disabled' }}
-          - type: "pulls"
-            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && 'enabled' || 'disabled' }}
+  download-pulls:
+    if: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && contains(fromJSON('["All", "Download Data"]'), inputs.steps) }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: "Download Pull Requests"
+        uses: ./download
+        with:
+          type: "issues"
+          cache_key: ${{ env.CACHE_KEY }}
+          repository: ${{ env.REPOSITORY }}
+          label_prefix: ${{ env.LABEL_PREFIX }}
+          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
+          limit: ${{ env.LIMIT }}
+          page_size: ${{ env.PAGE_SIZE }}
+          page_limit: ${{ env.PAGE_LIMIT }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  train-issues:
+    if: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && contains(fromJSON('["All", "Train Model"]'), inputs.steps) && contains(fromJSON('["success", "skipped"]'), needs.download-issues.result) }}
     runs-on: ubuntu-latest
     permissions: {}
-    needs: download
+    needs: download-issues
     steps:
-      - name: "Train Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
-        if: ${{ contains(fromJSON('["All", "Train Model"]'), inputs.steps) && matrix.run == 'enabled' && (needs.download.result == 'success' || !contains(fromJSON('["All", "Download Data"]'), inputs.steps)) }}
-        uses: jeffhandley/issue-labeler/train@main
+      - name: "Train Model for Issues"
+        uses: ./train
         with:
-          type: ${{ matrix.type }}
+          type: "issues"
           data_cache_key: ${{ env.CACHE_KEY }}
           model_cache_key: ${{ env.CACHE_KEY }}
 
-  test:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - type: "issues"
-            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && 'enabled' || 'disabled' }}
-          - type: "pulls"
-            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && 'enabled' || 'disabled' }}
+  train-pulls:
+    if: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && contains(fromJSON('["All", "Train Model"]'), inputs.steps) && contains(fromJSON('["success", "skipped"]'), needs.download-pulls.result) }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    needs: download-pulls
+    steps:
+      - name: "Train Model for Pull Requests"
+        uses: ./train
+        with:
+          type: "pulls"
+          data_cache_key: ${{ env.CACHE_KEY }}
+          model_cache_key: ${{ env.CACHE_KEY }}
+
+  test-issues:
+    if: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && contains(fromJSON('["All", "Test Model"]'), inputs.steps) && contains(fromJSON('["success", "skipped"]'), needs.train-issues.result) }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
-      pull-requests: read
-    needs: train
+    needs: train-issues
     steps:
-      - name: "Test Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
-        if: ${{ contains(fromJSON('["All", "Test Model"]'), inputs.steps) && matrix.run == 'enabled' && (needs.train.result == 'success' || !contains(fromJSON('["All", "Train Model"]'), inputs.steps)) }}
-        uses: jeffhandley/issue-labeler/test@main
+      - name: "Test Model for Issues"
+        uses: ./test
+        with:
+          type: ${{ matrix.type }}
+          cache_key: ${{ env.CACHE_KEY }}
+          repository: ${{ env.REPOSITORY }}
+          label_prefix: ${{ env.LABEL_PREFIX }}
+          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
+          threshold: ${{ env.THRESHOLD }}
+          limit: ${{ env.LIMIT }}
+          page_size: ${{ env.PAGE_SIZE }}
+          page_limit: ${{ env.PAGE_LIMIT }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  test-pulls:
+    if: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && contains(fromJSON('["All", "Test Model"]'), inputs.steps) && contains(fromJSON('["success", "skipped"]'), needs.train-pulls.result) }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    needs: train-pulls
+    steps:
+      - name: "Test Model for Pull Requests"
+        uses: ./test
         with:
           type: ${{ matrix.type }}
           cache_key: ${{ env.CACHE_KEY }}
