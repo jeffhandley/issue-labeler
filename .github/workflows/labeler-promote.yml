@@ -27,6 +27,7 @@ permissions:
 
 jobs:
   promote-issues:
+    if: ${{ inputs.issues }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -38,6 +39,7 @@ jobs:
           backup_key: ${{ inputs.backup_key }}
 
   promote-pulls:
+    if: ${{ inputs.pulls }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -47,14 +49,3 @@ jobs:
           type: "pulls"
           staged_key: ${{ inputs.staged_key }}
           backup_key: ${{ inputs.backup_key }}
-
-  output:
-    runs-on: ubuntu-latest
-    steps:
-      - name: "No promotions"
-        if: ${{ !inputs.issues && !inputs.pulls }}
-        shell: bash
-        run: |
-          echo "> [!IMPORTANT]" >> $GITHUB_STEP_SUMMARY
-          echo "> Neither 'issues' nor 'pulls' was selected for promotion." >> $GITHUB_STEP_SUMMARY
-          echo "> These options default to unchecked to prevent accidental promotion." >> $GITHUB_STEP_SUMMARY
