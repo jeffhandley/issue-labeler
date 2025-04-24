@@ -28,7 +28,7 @@ on:
 
 env:
   # Do not allow failure for jobs triggered automatically (this can block PR merge)
-  ALLOW_FAILURE: ${{ github.event_name == "workflow_dispatch" }}
+  ALLOW_FAILURE: ${{ github.event_name == 'workflow_dispatch' }}
 
   LABEL_PREFIX: "area-"
   THRESHOLD: 0.40
@@ -38,7 +38,7 @@ env:
 jobs:
   predict-pull-label:
     # Do not automatically run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.event_name == "workflow_dispatch" || github.repository_owner == "jeffhandley" }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.repository_owner == 'jeffhandley' }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -52,7 +52,7 @@ jobs:
 
       - name: "Predict pull labels"
         id: prediction
-        if: ${{ steps.restore-model.outputs.cache-hit == "true" }}
+        if: ${{ steps.restore-model.outputs.cache-hit == 'true' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           pulls: ${{ inputs.pulls || github.event.number }}

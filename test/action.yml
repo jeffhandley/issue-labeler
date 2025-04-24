@@ -65,13 +65,13 @@ runs:
       shell: bash
       run: |
         dotnet run -c Release --project IssueLabeler/src/Tester --  \
-          ${{ format("--repo \"{0}\"", inputs.repository || github.repository) }} \
-          ${{ format("--label-prefix \"{0}\"", inputs.label_prefix) }} \
-          ${{ format("--threshold {0}", inputs.threshold) }} \
-          ${{ format("--{0}-model \"labeler-cache/{0}-model.zip\"", inputs.type) || "" }} \
-          ${{ inputs.excluded_authors && format("--excluded-authors \"{0}\"", inputs.excluded_authors) || "" }} \
-          ${{ inputs.limit && format("--{0}-limit {1}", inputs.type, inputs.limit) || "" }} \
-          ${{ inputs.page_size && format("--page-size {0}", inputs.page_size) || "" }} \
-          ${{ inputs.page_limit && format("--page-limit {0}", inputs.page_limit) || "" }} \
-          ${{ inputs.retries && format("--retries {0}", inputs.retries) || "" }} \
-          ${{ inputs.verbose && "--verbose" || "" }}
+          ${{ format('--repo "{0}"', inputs.repository || github.repository) }} \
+          ${{ format('--label-prefix "{0}"', inputs.label_prefix) }} \
+          ${{ format('--threshold {0}', inputs.threshold) }} \
+          ${{ format('--{0}-model "labeler-cache/{0}-model.zip"', inputs.type) || '' }} \
+          ${{ inputs.excluded_authors && format('--excluded-authors "{0}"', inputs.excluded_authors) || '' }} \
+          ${{ inputs.limit && format('--{0}-limit {1}', inputs.type, inputs.limit) || '' }} \
+          ${{ inputs.page_size && format('--page-size {0}', inputs.page_size) || '' }} \
+          ${{ inputs.page_limit && format('--page-limit {0}', inputs.page_limit) || '' }} \
+          ${{ inputs.retries && format('--retries {0}', inputs.retries) || '' }} \
+          ${{ inputs.verbose && '--verbose' || '' }}

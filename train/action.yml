@@ -77,8 +77,8 @@ runs:
       shell: bash
       run: |
         dotnet run -c Release --project IssueLabeler/src/Trainer -- \
-          ${{ format("--{0}-data \"{1}\"", inputs.type, env.DATA_PATH) }} \
-          ${{ format("--{0}-model \"{1}\"", inputs.type, env.MODEL_PATH) }}
+          ${{ format('--{0}-data "{1}"', inputs.type, env.DATA_PATH) }} \
+          ${{ format('--{0}-model "{1}"', inputs.type, env.MODEL_PATH) }}
 
     - name: "Save Model to Cache"
       uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3

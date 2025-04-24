@@ -16,12 +16,12 @@ on:
         default: "ACTIVE"
 
 env:
-  CACHE_KEY: ${{ inputs.cache_key || "ACTIVE" }}
+  CACHE_KEY: ${{ inputs.cache_key || 'ACTIVE' }}
 
 jobs:
   restore-cache:
     # Do not automatically run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.event_name == "workflow_dispatch" || github.repository_owner == "jeffhandley" }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.repository_owner == 'jeffhandley' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

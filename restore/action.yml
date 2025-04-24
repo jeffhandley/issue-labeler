@@ -49,10 +49,10 @@ runs:
       run: |
         if [[ "${{ steps.restore-cache.outputs.cache-hit }}" == "true" ]]; then
           echo "> [!NOTE]" >> $GITHUB_STEP_SUMMARY
-          echo "> The ${{ inputs.type == "issues" && "Issues" || "Pull Requests" }} model was successfully restored from cache." >> $GITHUB_STEP_SUMMARY
+          echo "> The ${{ inputs.type == 'issues' && 'Issues' || 'Pull Requests' }} model was successfully restored from cache." >> $GITHUB_STEP_SUMMARY
         else
           echo "> [!CAUTION]" >> $GITHUB_STEP_SUMMARY
-          echo "> The ${{ inputs.type == "issues" && "Issues" || "Pull Requests" }} model was not restored from cache. Label prediction cannot proceed." >> $GITHUB_STEP_SUMMARY
+          echo "> The ${{ inputs.type == 'issues' && 'Issues' || 'Pull Requests' }} model was not restored from cache. Label prediction cannot proceed." >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ inputs.fail-on-cache-miss }}" != "true" ]]; then
             echo "> The workflow is gracefully exiting without failure." >> $GITHUB_STEP_SUMMARY

@@ -51,7 +51,7 @@ runs:
         fail-on-cache-miss: true
 
     - name: "Check for Existing Backup Cache Entry"
-      if: ${{ steps.check-staged.outputs.cache-hit == "true" }}
+      if: ${{ steps.check-staged.outputs.cache-hit == 'true' }}
       id: check-backup
       uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
@@ -61,7 +61,7 @@ runs:
         fail-on-cache-miss: false
 
     - name: "Restore Existing Active Cache Entry"
-      if: ${{ steps.check-staged.outputs.cache-hit == "true" }}
+      if: ${{ steps.check-staged.outputs.cache-hit == 'true' }}
       id: check-active
       uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
@@ -70,7 +70,7 @@ runs:
         fail-on-cache-miss: false
 
     - name: "Abort if Backup Cache Entry Already Exists"
-      if: ${{ steps.check-active.outputs.cache-hit == "true" && steps.check-backup.outputs.cache-hit == "true" }}
+      if: ${{ steps.check-active.outputs.cache-hit == 'true' && steps.check-backup.outputs.cache-hit == 'true' }}
       shell: bash
       run: |
         echo "::error::Backup cache key '${{ env.BACKUP_KEY }}' already exists. Cannot proceed with promotion."
@@ -82,7 +82,7 @@ runs:
         exit 1
 
     - name: "Cache Backup of Current Active Cache Entry"
-      if: ${{ steps.check-active.outputs.cache-hit == "true" }}
+      if: ${{ steps.check-active.outputs.cache-hit == 'true' }}
       id: backup-file
       uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
       with:
@@ -90,7 +90,7 @@ runs:
         key: ${{ env.BACKUP_KEY }}
 
     - name: "Remove Local Copy of Current Active Cache Entry"
-      if: ${{ steps.check-active.outputs.cache-hit == "true" }}
+      if: ${{ steps.check-active.outputs.cache-hit == 'true' }}
       shell: bash
       run: |
         rm ${{ env.CACHE_PATH }}
@@ -103,7 +103,7 @@ runs:
         fail-on-cache-miss: true
 
     - name: "Delete Existing Active Cache Entry"
-      if: ${{ steps.check-active.outputs.cache-hit == "true" }}
+      if: ${{ steps.check-active.outputs.cache-hit == 'true' }}
       shell: bash
       run: |
         gh api --method DELETE \

@@ -50,9 +50,9 @@ env:
   LIMIT: ${{ inputs.limit }}
   PAGE_SIZE: ${{ inputs.page_size }}
   PAGE_LIMIT: ${{ inputs.page_limit }}
-  JOB_DOWNLOAD: ${{ inputs.steps in ["All", "Download Data"] }}
-  JOB_TRAIN: ${{ inputs.steps in ["All", "Train Model"] }}
-  JOB_TEST: ${{ inputs.steps in ["All", "Test Model"] }}
+  JOB_DOWNLOAD: ${{ inputs.steps in ['All', 'Download Data'] }}
+  JOB_TRAIN: ${{ inputs.steps in ['All', 'Train Model'] }}
+  JOB_TEST: ${{ inputs.steps in ['All', 'Test Model'] }}
 
 jobs:
   download:
@@ -61,9 +61,9 @@ jobs:
       matrix:
         include:
           - type: issues
-            run: ${{ inputs.type in ["Both", "Issues"] }}
+            run: ${{ inputs.type in ['Both', 'Issues'] }}
           - type: pulls
-            run: ${{ inputs.type in ["Both", "Pull Requests"] }}
+            run: ${{ inputs.type in ['Both', 'Pull Requests'] }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
@@ -90,9 +90,9 @@ jobs:
       matrix:
         include:
           - type: "issues"
-            run: ${{ inputs.type in ["Both", "Issues"] }}
+            run: ${{ inputs.type in ['Both', 'Issues'] }}
           - type: "pulls"
-            run: ${{ inputs.type in ["Both", "Pull Requests"] }}
+            run: ${{ inputs.type in ['Both', 'Pull Requests'] }}
     runs-on: ubuntu-latest
     permissions: {}
     needs: download
@@ -111,15 +111,15 @@ jobs:
       matrix:
         include:
           - type: issues
-            run: ${{ inputs.type in ["Both", "Issues"] }}
+            run: ${{ inputs.type in ['Both', 'Issues'] }}
           - type: pulls
-            run: ${{ inputs.type in ["Both", "Pull Requests"] }}
+            run: ${{ inputs.type in ['Both', 'Pull Requests'] }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
       pull-requests: read
     needs: train
-    if: ${{ env.JOB_TEST && matrix.run && (needs.train.result == "success" || !env.JOB_TRAIN) }}
+    if: ${{ env.JOB_TEST && matrix.run && (needs.train.result == 'success' || !env.JOB_TRAIN) }}
     steps:
       - name: "Test Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
         uses: jeffhandley/issue-labeler/test@main

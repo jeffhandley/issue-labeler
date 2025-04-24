@@ -19,7 +19,7 @@ on:
 
 env:
   # Do not allow failure for jobs triggered automatically (as this causes red noise on the workflows list)
-  ALLOW_FAILURE: ${{ github.event_name == "workflow_dispatch" }}
+  ALLOW_FAILURE: ${{ github.event_name == 'workflow_dispatch' }}
 
   LABEL_PREFIX: "area-"
   THRESHOLD: 0.40
@@ -29,7 +29,7 @@ env:
 jobs:
   predict-issue-label:
     # Do not automatically run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.event_name == "workflow_dispatch" || github.repository_owner == "jeffhandley" }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.repository_owner == 'jeffhandley' }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -43,7 +43,7 @@ jobs:
 
       - name: "Predict issue labels"
         id: prediction
-        if: ${{ steps.restore-model.outputs.cache-hit == "true" }}
+        if: ${{ steps.restore-model.outputs.cache-hit == 'true' }}
         uses: jeffhandley/issue-labeler/predict@main
         with:
           issues: ${{ inputs.issues || github.event.issue.number }}
