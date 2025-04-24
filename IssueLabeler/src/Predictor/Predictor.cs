@@ -113,8 +113,6 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
     List<string> resultMessageParts = [];
     string? error = null;
 
-    string? defaultLabelUrl = defaultLabel is not null ? GitHubApi.GetLabelUrl(argsData.Org, argsData.Repo, defaultLabel) : null;
-
     (ulong, string, bool) GetResult(bool success)
     {
         foreach (var summaryWrite in predictionResults)
@@ -198,11 +196,10 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
         .Take(3);
 
     var bestScore = predictions.FirstOrDefault(p => p.Score >= argsData.Threshold);
-    string? bestScoreLabelUrl = bestScore is not null ? GitHubApi.GetLabelUrl(argsData.Org, argsData.Repo, bestScore.Label) : null;
 
     if (bestScore is not null)
     {
-        predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Predicted label: {bestScoreLabelUrl} meets the threshold of {argsData.Threshold}.**", true));
+        predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Predicted label: `{bestScore.Label}` meets the threshold of {argsData.Threshold}.**", true));
     }
     else
     {
@@ -223,7 +220,7 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
 
         if (error is null)
         {
-            predictionResults.Add(summary => summary.AddRawMarkdown($"    - {bestScoreLabelUrl} applied", true));
+            predictionResults.Add(summary => summary.AddRawMarkdown($"    - `{bestScore.Label}` applied", true));
             resultMessageParts.Add($"Label '{bestScore.Label}' applied.");
 
             if (hasDefaultLabel && defaultLabel is not null)
@@ -235,13 +232,13 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
 
                 if (error is null)
                 {
-                    predictionResults.Add(summary => summary.AddRawMarkdown($"    - Removed default label {defaultLabelUrl}", true));
+                    predictionResults.Add(summary => summary.AddRawMarkdown($"    - Removed default label `{defaultLabel}`", true));
                     resultMessageParts.Add($"Default label '{defaultLabel}' removed.");
                     return Success();
                 }
                 else
                 {
-                    predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error removing default label {defaultLabelUrl}**: {error}", true));
+                    predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error removing default label `{defaultLabel}`**: {error}", true));
                     resultMessageParts.Add($"Error occurred removing default label '{defaultLabel}'");
                     return Failure();
                 }
@@ -253,7 +250,7 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
         }
         else
         {
-            predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error adding label {bestScoreLabelUrl}**: {error}", true));
+            predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error adding label `{bestScore.Label}`**: {error}", true));
             resultMessageParts.Add($"Error occurred applying label '{bestScore.Label}'");
             return Failure();
         }
@@ -263,7 +260,7 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
     {
         if (hasDefaultLabel)
         {
-            predictionResults.Add(summary => summary.AddRawMarkdown($"    - Default label {defaultLabelUrl} is already applied.", true));
+            predictionResults.Add(summary => summary.AddRawMarkdown($"    - Default label `{defaultLabel}` is already applied.", true));
             resultMessageParts.Add($"No prediction made. Default label '{defaultLabel}' is already applied.");
             return Success();
         }
@@ -276,13 +273,13 @@ async Task<(ulong Number, string ResultMessage, bool Success)> ProcessPrediction
 
             if (error is null)
             {
-                predictionResults.Add(summary => summary.AddRawMarkdown($"    - Default label {defaultLabelUrl} applied.", true));
+                predictionResults.Add(summary => summary.AddRawMarkdown($"    - Default label `{defaultLabel}` applied.", true));
                 resultMessageParts.Add($"No prediction made. Default label '{defaultLabel}' applied.");
                 return Success();
             }
             else
             {
-                predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error adding default label {defaultLabelUrl}**: {error}", true));
+                predictionResults.Add(summary => summary.AddRawMarkdown($"    - **Error adding default label `{defaultLabel}`**: {error}", true));
                 resultMessageParts.Add($"Error occurred applying default label '{defaultLabel}'");
                 return Failure();
             }

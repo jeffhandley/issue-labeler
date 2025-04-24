@@ -491,19 +491,6 @@ public class GitHubApi
     }
 
     /// <summary>
-    /// Generates a URL for a label in a GitHub repository.
-    /// </summary>
-    /// <remarks>
-    /// The label name is URL-encoded, and the resulting URL can be used to render a label link in GitHub-flavored Markdown.
-    /// </remarks>
-    /// <param name="org">The GitHub organization name.</param>
-    /// <param name="repo">The GitHub repository name.</param>
-    /// <param name="label">The label name.</param>
-    /// <returns>The URL for the label in the GitHub repository.</returns>
-    public static string GetLabelUrl(string org, string repo, string label) =>
-        $"https://github.com/{org}/{repo}/labels/{Uri.EscapeDataString(label)}";
-
-    /// <summary>
     /// Adds a label to an issue or pull request in a GitHub repository.
     /// </summary>
     /// <param name="githubToken">The GitHub token to use for authentication.</param>
