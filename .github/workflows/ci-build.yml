@@ -29,3 +29,6 @@ jobs:
 
       - name: "Build the IssueLabeler solution"
         run: dotnet build IssueLabeler/ --configuration Release
+
+      - name: "Run tests from the IssueLabeler solution"
+        run: dotnet test IssueLabeler/
