@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "src\Common\Common.csproj", "{3F3044DC-A9F8-DE16-79DD-4A0C1649CD06}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Downloader", "src\Downloader\Downloader.csproj", "{AB75FE13-DB1A-4B6F-8B27-1486F98EA75C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trainer", "src\Trainer\Trainer.csproj", "{F1FE4054-C44E-487F-90F9-2F111AB7BD9C}"
@@ -54,6 +56,10 @@ Global
 		{57F2D1DC-DA30-40CA-AE1A-2EFD8139AF25}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{57F2D1DC-DA30-40CA-AE1A-2EFD8139AF25}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{57F2D1DC-DA30-40CA-AE1A-2EFD8139AF25}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3F3044DC-A9F8-DE16-79DD-4A0C1649CD06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F3044DC-A9F8-DE16-79DD-4A0C1649CD06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F3044DC-A9F8-DE16-79DD-4A0C1649CD06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F3044DC-A9F8-DE16-79DD-4A0C1649CD06}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
