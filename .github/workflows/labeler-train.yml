@@ -58,16 +58,16 @@ jobs:
       matrix:
         include:
           - type: issues
-            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) }}
+            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && 'enabled' || 'disabled' }}
           - type: pulls
-            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) }}
+            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && 'enabled' || 'disabled' }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
       pull-requests: read
     steps:
       - name: "Download Data for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
-        if: ${{ contains(fromJSON('["All", "Download Data"]'), inputs.steps) && matrix.run }}
+        if: ${{ contains(fromJSON('["All", "Download Data"]'), inputs.steps) && matrix.run == 'enabled' }}
         uses: jeffhandley/issue-labeler/download@main
         with:
           type: ${{ matrix.type }}
@@ -87,15 +87,15 @@ jobs:
       matrix:
         include:
           - type: "issues"
-            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) }}
+            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && 'enabled' || 'disabled' }}
           - type: "pulls"
-            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) }}
+            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && 'enabled' || 'disabled' }}
     runs-on: ubuntu-latest
     permissions: {}
     needs: download
     steps:
       - name: "Train Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
-        if: ${{ contains(fromJSON('["All", "Train Model"]'), inputs.steps) && matrix.run && (needs.download.result == 'success' || !contains(fromJSON('["All", "Download Data"]'), inputs.steps)) }}
+        if: ${{ contains(fromJSON('["All", "Train Model"]'), inputs.steps) && matrix.run == 'enabled' && (needs.download.result == 'success' || !contains(fromJSON('["All", "Download Data"]'), inputs.steps)) }}
         uses: jeffhandley/issue-labeler/train@main
         with:
           type: ${{ matrix.type }}
@@ -108,9 +108,9 @@ jobs:
       matrix:
         include:
           - type: "issues"
-            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) }}
+            run: ${{ contains(fromJSON('["Both", "Issues"]'), inputs.type) && 'enabled' || 'disabled' }}
           - type: "pulls"
-            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) }}
+            run: ${{ contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && 'enabled' || 'disabled' }}
     runs-on: ubuntu-latest
     permissions:
       issues: read
@@ -118,7 +118,7 @@ jobs:
     needs: train
     steps:
       - name: "Test Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
-        if: ${{ contains(fromJSON('["All", "Test Model"]'), inputs.steps) && matrix.run && (needs.train.result == 'success' || !contains(fromJSON('["All", "Train Model"]'), inputs.steps)) }}
+        if: ${{ contains(fromJSON('["All", "Test Model"]'), inputs.steps) && matrix.run == 'enabled' && (needs.train.result == 'success' || !contains(fromJSON('["All", "Train Model"]'), inputs.steps)) }}
         uses: jeffhandley/issue-labeler/test@main
         with:
           type: ${{ matrix.type }}

@@ -33,12 +33,12 @@ jobs:
       matrix:
         include:
           - type: "issues"
-            promote: ${{ inputs.issues }}
+            promote: ${{ inputs.issues && 'enabled' || 'disabled' }}
           - type: "pulls"
-            promote: ${{ inputs.pulls }}
+            promote: ${{ inputs.pulls && 'enabled' || 'disabled' }}
     steps:
       - name: "Promote ${{ matrix.type }} Model"
-        if: ${{ matrix.promote }}
+        if: ${{ matrix.promote == 'enabled' }}
         uses: jeffhandley/issue-labeler/promote@main
         with:
           type: ${{ matrix.type }}
