@@ -65,9 +65,9 @@ jobs:
     permissions:
       issues: read
       pull-requests: read
-    if: ${{ contains(fromJSON('["All", "Download Data"]'), inputs.steps) && matrix.run }}
     steps:
       - name: "Download Data for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
+        if: ${{ contains(fromJSON('["All", "Download Data"]'), inputs.steps) && matrix.run }}
         uses: jeffhandley/issue-labeler/download@main
         with:
           type: ${{ matrix.type }}
@@ -93,9 +93,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     needs: download
-    if: ${{ contains(fromJSON('["All", "Train Model"]'), inputs.steps) && matrix.run && (needs.download.result == 'success' || !contains(fromJSON('["All", "Download Data"]'), inputs.steps)) }}
     steps:
       - name: "Train Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
+        if: ${{ contains(fromJSON('["All", "Train Model"]'), inputs.steps) && matrix.run && (needs.download.result == 'success' || !contains(fromJSON('["All", "Download Data"]'), inputs.steps)) }}
         uses: jeffhandley/issue-labeler/train@main
         with:
           type: ${{ matrix.type }}
@@ -116,9 +116,9 @@ jobs:
       issues: read
       pull-requests: read
     needs: train
-    if: ${{ contains(fromJSON('["All", "Test Model"]'), inputs.steps) && matrix.run && (needs.train.result == 'success' || !contains(fromJSON('["All", "Train Model"]'), inputs.steps)) }}
     steps:
       - name: "Test Model for ${{ matrix.type == 'issues' && 'Issues' || 'Pull Requests' }}"
+        if: ${{ contains(fromJSON('["All", "Test Model"]'), inputs.steps) && matrix.run && (needs.train.result == 'success' || !contains(fromJSON('["All", "Train Model"]'), inputs.steps)) }}
         uses: jeffhandley/issue-labeler/test@main
         with:
           type: ${{ matrix.type }}
