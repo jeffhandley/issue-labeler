@@ -60,11 +60,4 @@ jobs:
           excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
         env:
           GITHUB_TOKEN:  ${{ github.token }}
-        continue-on-error: ${{ github.event_name == 'pull_request_target' }}
-
-      - name: "Show prediction"
-        if: ${{ steps.restore-model.outputs.cache-hit == 'true' && github.event_name == 'issues' }}
-        shell: bash
-        run: |
-          echo "Predicted Label: ${{ steps.prediction.outputs.label }}" >> $GITHUB_STEP_SUMMARY
-          echo "Prediction Score: ${{ steps.prediction.outputs.score }}" >> $GITHUB_STEP_SUMMARY
+        continue-on-error: ${{ github.event_name == "pull_request_target" }}
