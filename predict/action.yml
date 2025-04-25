@@ -45,9 +45,9 @@ branding:
 
 runs:
   using: docker
-  # This image reference will be updated to be pinned to sha256
-  # digests to ensure immutable deployments
-  image: docker://ghcr.io/dotnet/issue-labeler/predictor:main
+  # Reference the docker container image using a published sha256 digest
+  # to ensure an immutable version is always used.
+  image: docker://ghcr.io/dotnet/issue-labeler/predictor@sha256:<sha256-digest-to-be-added-here-after-first-release>
   env:
     INPUT_ISSUES_MODEL: "labeler-cache/issues-model.zip"
     INPUT_PULLS_MODEL: "labeler-cache/pulls-model.zip"
