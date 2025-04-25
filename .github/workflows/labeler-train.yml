@@ -45,7 +45,6 @@ env:
   CACHE_KEY: ${{ inputs.cache_key_suffix }}
   REPOSITORY: ${{ inputs.repository || github.repository }}
   LABEL_PREFIX: "area-"
-  EXCLUDED_AUTHORS: "null"
   THRESHOLD: "0.40"
   LIMIT: ${{ inputs.limit }}
   PAGE_SIZE: ${{ inputs.page_size }}
@@ -66,7 +65,6 @@ jobs:
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
-          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
           limit: ${{ env.LIMIT }}
           page_size: ${{ env.PAGE_SIZE }}
           page_limit: ${{ env.PAGE_LIMIT }}
@@ -87,7 +85,6 @@ jobs:
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
-          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
           limit: ${{ env.LIMIT }}
           page_size: ${{ env.PAGE_SIZE }}
           page_limit: ${{ env.PAGE_LIMIT }}
@@ -137,7 +134,6 @@ jobs:
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
-          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
           threshold: ${{ env.THRESHOLD }}
           limit: ${{ env.LIMIT }}
           page_size: ${{ env.PAGE_SIZE }}
@@ -160,7 +156,6 @@ jobs:
           cache_key: ${{ env.CACHE_KEY }}
           repository: ${{ env.REPOSITORY }}
           label_prefix: ${{ env.LABEL_PREFIX }}
-          excluded_authors: ${{ env.EXCLUDED_AUTHORS }}
           threshold: ${{ env.THRESHOLD }}
           limit: ${{ env.LIMIT }}
           page_size: ${{ env.PAGE_SIZE }}
