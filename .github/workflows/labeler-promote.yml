@@ -30,9 +30,8 @@ jobs:
     if: ${{ inputs.issues }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: "Promote Model for Issues"
-        uses: ./promote
+        uses: jeffhandley/issue-labeler/promote@main
         with:
           type: "issues"
           staged_key: ${{ inputs.staged_key }}
@@ -42,9 +41,8 @@ jobs:
     if: ${{ inputs.pulls }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: "Promote Model for Pull Requests"
-        uses: ./promote
+        uses: jeffhandley/issue-labeler/promote@main
         with:
           type: "pulls"
           staged_key: ${{ inputs.staged_key }}

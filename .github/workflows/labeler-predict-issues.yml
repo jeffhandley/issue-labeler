@@ -33,11 +33,9 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
       - name: "Restore issues model from cache"
         id: restore-model
-        uses: ./restore
+        uses: jeffhandley/issue-labeler/restore@main
         with:
           type: issues
           fail-on-cache-miss: ${{ env.ALLOW_FAILURE }}
@@ -46,7 +44,7 @@ jobs:
       - name: "Predict issue labels"
         id: prediction
         if: ${{ steps.restore-model.outputs.cache-hit == 'true' }}
-        uses: ./predict
+        uses: jeffhandley/issue-labeler/predict@main
         with:
           issues: ${{ inputs.issues || github.event.issue.number }}
           label_prefix: ${{ env.LABEL_PREFIX }}

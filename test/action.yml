@@ -46,10 +46,14 @@ runs:
           exit 1
         fi
 
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - name: "Clone the ${{ github.action_repository }} repository with ref '{{ github.action_ref }}'"
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      env:
+        ISSUE_LABELER_REPO: ${{ github.action_repository }}
+        ISSUE_LABELER_REF: ${{ github.action_ref }}
       with:
-        repository: jeffhandley/issue-labeler
-        ref: c319ff273660bf59adeb795d14bc03774ed4e733 # v2.0.0
+        repository: ${{ env.ISSUE_LABELER_REPO }}
+        ref: ${{ env.ISSUE_LABELER_REF }}
 
     - name: "Restore model from cache"
       uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
