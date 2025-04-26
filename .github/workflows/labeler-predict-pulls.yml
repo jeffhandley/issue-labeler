@@ -36,15 +36,15 @@ env:
 
 jobs:
   predict-pull-label:
-    # Do not automatically run the workflow on forks outside the 'dotnet' org
-    if: ${{ github.event_name == 'workflow_dispatch' || github.repository_owner == 'dotnet' }}
+    # Do not automatically run the workflow on forks outside the 'jeffhandley' org
+    if: ${{ github.event_name == 'workflow_dispatch' || github.repository_owner == 'jeffhandley' }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
       - name: "Restore pulls model from cache"
         id: restore-model
-        uses: dotnet/issue-labeler/restore@main
+        uses: jeffhandley/issue-labeler/restore@main
         with:
           type: pulls
           fail-on-cache-miss: ${{ env.ALLOW_FAILURE }}
@@ -53,7 +53,7 @@ jobs:
       - name: "Predict pull labels"
         id: prediction
         if: ${{ steps.restore-model.outputs.cache-hit == 'true' }}
-        uses: dotnet/issue-labeler/predict@main
+        uses: jeffhandley/issue-labeler/predict@main
         with:
           pulls: ${{ inputs.pulls || github.event.number }}
           label_prefix: ${{ env.LABEL_PREFIX }}

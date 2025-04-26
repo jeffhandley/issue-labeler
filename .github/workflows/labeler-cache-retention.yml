@@ -20,15 +20,15 @@ env:
 
 jobs:
   restore-cache:
-    # Do not automatically run the workflow on forks outside the 'dotnet' org
-    if: ${{ github.event_name == 'workflow_dispatch' || github.repository_owner == 'dotnet' }}
+    # Do not automatically run the workflow on forks outside the 'jeffhandley' org
+    if: ${{ github.event_name == 'workflow_dispatch' || github.repository_owner == 'jeffhandley' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         type: ["issues", "pulls"]
     steps:
-      - uses: dotnet/issue-labeler/restore@main
+      - uses: jeffhandley/issue-labeler/restore@main
         with:
           type: ${{ matrix.type }}
           cache_key: ${{ env.CACHE_KEY }}
