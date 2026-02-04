@@ -1,4 +1,7 @@
 # Train the Issues and Pull Requests models for label prediction
+#
+# When using the default 'staged' cache key, models are automatically promoted
+# to ACTIVE after successful testing, making them available for prediction workflows.
 name: "Labeler: Training"
 
 on:
@@ -37,7 +40,7 @@ on:
         description: "Maximum number of pages to download for training/testing the model. Defaults to 1000 for issues, 4000 for pull requests."
         type: number
       cache_key_suffix:
-        description: "The cache key suffix to use for staged data/models (use 'ACTIVE' to bypass staging). Defaults to 'staged'."
+        description: "The cache key suffix to use for staged data/models. Use 'staged' (default) to auto-promote to ACTIVE after testing, or 'ACTIVE' to train directly to ACTIVE."
         required: true
         default: "staged"
 
