@@ -15,6 +15,10 @@ on:
   pull_request_target:
     types: opened
 
+  # Poll for open pull requests that need labels every 5 minutes
+  schedule:
+    - cron: "*/5 * * * *"
+
   # Allow dispatching the workflow via the Actions UI, specifying ranges of numbers
   workflow_dispatch:
     inputs:
@@ -35,16 +39,65 @@ env:
   DEFAULT_LABEL: "needs-area-label"
 
 jobs:
+  poll-pull-requests:
+    # Only run this job on schedule trigger and within the 'jeffhandley' org
+    if: ${{ github.event_name == 'schedule' && github.repository_owner == 'jeffhandley' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      pulls: ${{ steps.get-pulls.outputs.pulls }}
+    steps:
+      - name: "Get open pull requests needing labels"
+        id: get-pulls
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # Get all open pull requests
+          pulls=$(gh pr list --repo ${{ github.repository }} --state open --json number,labels --limit 1000)
+
+          # Filter to PRs that don't have a label starting with LABEL_PREFIX or matching DEFAULT_LABEL
+          needs_label=$(echo "$pulls" | jq -r --arg prefix "${{ env.LABEL_PREFIX }}" --arg default "${{ env.DEFAULT_LABEL }}" '
+            [.[] | select(
+              (.labels | map(.name) | any(startswith($prefix)) | not) and
+              (.labels | map(.name) | any(. == $default) | not)
+            ) | .number] | join(",")
+          ')
+
+          echo "Pull requests needing labels: $needs_label"
+          echo "pulls=$needs_label" >> $GITHUB_OUTPUT
+
   predict-pull-label:
     # Do not automatically run the workflow on forks outside the 'jeffhandley' org
-    if: ${{ github.event_name == 'workflow_dispatch' || github.repository_owner == 'jeffhandley' }}
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.repository_owner == 'jeffhandley') }}
+    needs: [poll-pull-requests]
+    # Always run this job, but use the polled PRs only on schedule trigger
+    # The 'if' uses always() so this job runs even when poll-pull-requests is skipped
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
+      - name: "Determine pull requests to process"
+        id: determine-pulls
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            pulls="${{ needs.poll-pull-requests.outputs.pulls }}"
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            pulls="${{ inputs.pulls }}"
+          else
+            pulls="${{ github.event.number }}"
+          fi
+          echo "pulls=$pulls" >> $GITHUB_OUTPUT
+          echo "Processing pull requests: $pulls"
+
+      - name: "Skip if no pull requests to process"
+        if: ${{ steps.determine-pulls.outputs.pulls == '' }}
+        run: echo "No pull requests to process. Skipping prediction."
+
       - name: "Restore pulls model from cache"
         id: restore-model
-        uses: jeffhandley/issue-labeler/restore@main
+        if: ${{ steps.determine-pulls.outputs.pulls != '' }}
+        uses: dotnet/issue-labeler/restore@46125e85e6a568dc712f358c39f35317366f5eed # v2.0.0
         with:
           type: pulls
           fail-on-cache-miss: ${{ env.ALLOW_FAILURE }}
@@ -52,10 +105,10 @@ jobs:
 
       - name: "Predict pull labels"
         id: prediction
-        if: ${{ steps.restore-model.outputs.cache-hit == 'true' }}
-        uses: jeffhandley/issue-labeler/predict@main
+        if: ${{ steps.determine-pulls.outputs.pulls != '' && steps.restore-model.outputs.cache-hit == 'true' }}
+        uses: dotnet/issue-labeler/predict@46125e85e6a568dc712f358c39f35317366f5eed # v2.0.0
         with:
-          pulls: ${{ inputs.pulls || github.event.number }}
+          pulls: ${{ steps.determine-pulls.outputs.pulls }}
           label_prefix: ${{ env.LABEL_PREFIX }}
           threshold: ${{ env.THRESHOLD }}
           default_label: ${{ env.DEFAULT_LABEL }}
