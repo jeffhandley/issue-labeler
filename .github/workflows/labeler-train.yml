@@ -161,13 +161,13 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   promote-issues:
-    # Automatically promote from 'staged' to 'ACTIVE' after successful testing
+    # Automatically promote from 'staged' to 'ACTIVE' after successful training and testing
     # This only runs when using the default 'staged' cache key
-    if: ${{ always() && inputs.cache_key_suffix == 'staged' && contains(fromJSON('["Both", "Issues"]'), inputs.type) && contains(fromJSON('["success", "skipped"]'), needs.test-issues.result) }}
+    if: ${{ always() && inputs.cache_key_suffix == 'staged' && contains(fromJSON('["Both", "Issues"]'), inputs.type) && needs.train-issues.result == 'success' && contains(fromJSON('["success", "skipped"]'), needs.test-issues.result) }}
     runs-on: ubuntu-latest
     permissions:
       actions: write
-    needs: test-issues
+    needs: [train-issues, test-issues]
     steps:
       - name: "Promote Model for Issues"
         uses: jeffhandley/issue-labeler/promote@main
@@ -179,13 +179,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   promote-pulls:
-    # Automatically promote from 'staged' to 'ACTIVE' after successful testing
+    # Automatically promote from 'staged' to 'ACTIVE' after successful training and testing
     # This only runs when using the default 'staged' cache key
-    if: ${{ always() && inputs.cache_key_suffix == 'staged' && contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && contains(fromJSON('["success", "skipped"]'), needs.test-pulls.result) }}
+    if: ${{ always() && inputs.cache_key_suffix == 'staged' && contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && needs.train-pulls.result == 'success' && contains(fromJSON('["success", "skipped"]'), needs.test-pulls.result) }}
     runs-on: ubuntu-latest
     permissions:
       actions: write
-    needs: test-pulls
+    needs: [train-pulls, test-pulls]
     steps:
       - name: "Promote Model for Pull Requests"
         uses: jeffhandley/issue-labeler/promote@main
