@@ -156,3 +156,39 @@ jobs:
           page_limit: ${{ env.PAGE_LIMIT }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+  promote-issues:
+    # Automatically promote from 'staged' to 'ACTIVE' after successful testing
+    # This only runs when using the default 'staged' cache key
+    if: ${{ always() && inputs.cache_key_suffix == 'staged' && contains(fromJSON('["Both", "Issues"]'), inputs.type) && contains(fromJSON('["success", "skipped"]'), needs.test-issues.result) }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    needs: test-issues
+    steps:
+      - name: "Promote Model for Issues"
+        uses: jeffhandley/issue-labeler/promote@main
+        with:
+          type: "issues"
+          staged_key: "staged"
+          backup_key: "backup"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  promote-pulls:
+    # Automatically promote from 'staged' to 'ACTIVE' after successful testing
+    # This only runs when using the default 'staged' cache key
+    if: ${{ always() && inputs.cache_key_suffix == 'staged' && contains(fromJSON('["Both", "Pull Requests"]'), inputs.type) && contains(fromJSON('["success", "skipped"]'), needs.test-pulls.result) }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    needs: test-pulls
+    steps:
+      - name: "Promote Model for Pull Requests"
+        uses: jeffhandley/issue-labeler/promote@main
+        with:
+          type: "pulls"
+          staged_key: "staged"
+          backup_key: "backup"
+        env:
+          GH_TOKEN: ${{ github.token }}
