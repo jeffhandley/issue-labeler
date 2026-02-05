@@ -20,11 +20,12 @@ on:
     - cron: "*/5 * * * *"
 
   # Allow dispatching the workflow via the Actions UI, specifying ranges of numbers
+  # If no pull request numbers are provided, it behaves as a polling event
   workflow_dispatch:
     inputs:
       pulls:
-        description: "Pull Request Numbers (comma-separated list of ranges)."
-        required: true
+        description: "Pull Request Numbers (comma-separated list of ranges). Leave empty to poll."
+        required: false
       cache_key:
         description: "The cache key suffix to use for restoring the model. Defaults to 'ACTIVE'."
         required: true
@@ -40,8 +41,8 @@ env:
 
 jobs:
   poll-pull-requests:
-    # Only run this job on schedule trigger and within the 'jeffhandley' org
-    if: ${{ github.event_name == 'schedule' && github.repository_owner == 'jeffhandley' }}
+    # Run on schedule trigger or workflow_dispatch without PR numbers, within the 'jeffhandley' org
+    if: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.pulls == '')) && github.repository_owner == 'jeffhandley' }}
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -90,10 +91,10 @@ jobs:
       - name: "Determine pull requests to process"
         id: determine-pulls
         run: |
-          if [ "${{ github.event_name }}" == "schedule" ]; then
-            pulls="${{ needs.poll-pull-requests.outputs.pulls }}"
-          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ inputs.pulls }}" ]; then
             pulls="${{ inputs.pulls }}"
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ] || [ "${{ github.event_name }}" == "schedule" ]; then
+            pulls="${{ needs.poll-pull-requests.outputs.pulls }}"
           else
             pulls="${{ github.event.number }}"
           fi
