@@ -101,10 +101,6 @@ jobs:
           echo "pulls=$pulls" >> $GITHUB_OUTPUT
           echo "Processing pull requests: $pulls"
 
-      - name: "Skip if no pull requests to process"
-        if: ${{ steps.determine-pulls.outputs.pulls == '' }}
-        run: echo "No pull requests to process. Skipping prediction."
-
       - name: "Restore pulls model from cache"
         id: restore-model
         if: ${{ steps.determine-pulls.outputs.pulls != '' }}
