@@ -53,8 +53,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          # Get all open pull requests
-          pulls=$(gh pr list --repo ${{ github.repository }} --state open --json number,labels --limit 1000)
+          # Get the last successful schedule run's timestamp (minus 5 minutes for overlap)
+          last_run=$(gh run list --repo ${{ github.repository }} --workflow "${{ github.workflow }}" --event schedule --status success --limit 1 --json updatedAt --jq '.[0].updatedAt // empty')
+
+          if [ -n "$last_run" ]; then
+            # Subtract 5 minutes from the last run timestamp for overlap
+            since=$(date -u -d "$last_run - 5 minutes" +"%Y-%m-%dT%H:%M:%SZ")
+            echo "Filtering PRs updated since: $since (last run: $last_run)"
+            pulls=$(gh pr list --repo ${{ github.repository }} --state open --json number,labels,updatedAt --limit 1000 --search "updated:>=$since")
+          else
+            # No previous run found; get all open pull requests
+            echo "No previous schedule run found. Getting all open pull requests."
+            pulls=$(gh pr list --repo ${{ github.repository }} --state open --json number,labels --limit 1000)
+          fi
 
           # Filter to PRs that don't have a label starting with LABEL_PREFIX
           needs_label=$(echo "$pulls" | jq -r --arg prefix "${{ env.LABEL_PREFIX }}" '
