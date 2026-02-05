@@ -56,11 +56,10 @@ jobs:
           # Get all open pull requests
           pulls=$(gh pr list --repo ${{ github.repository }} --state open --json number,labels --limit 1000)
 
-          # Filter to PRs that don't have a label starting with LABEL_PREFIX or matching DEFAULT_LABEL
-          needs_label=$(echo "$pulls" | jq -r --arg prefix "${{ env.LABEL_PREFIX }}" --arg default "${{ env.DEFAULT_LABEL }}" '
+          # Filter to PRs that don't have a label starting with LABEL_PREFIX
+          needs_label=$(echo "$pulls" | jq -r --arg prefix "${{ env.LABEL_PREFIX }}" '
             [.[] | select(
-              (.labels | map(.name) | any(startswith($prefix)) | not) and
-              (.labels | map(.name) | any(. == $default) | not)
+              (.labels | map(.name) | any(startswith($prefix)) | not)
             ) | .number] | join(",")
           ')
 
